@@ -55,6 +55,7 @@ import { LAYOUT_TOOL_NAMES, LAYOUT_TOOL_SCHEMAS } from './tools/schemas/layout-t
 import { SILENCE_TOOL_NAMES, SILENCE_TOOL_SCHEMAS } from './tools/schemas/silence-tools';
 import { COLOR_SCOPE_TOOL_NAMES, COLOR_SCOPE_TOOL_SCHEMAS } from './tools/schemas/color-scope-tools';
 import { AUTO_GRADE_TOOL_NAMES, AUTO_GRADE_TOOL_SCHEMAS } from './tools/schemas/auto-grade-tools';
+import { TASTE_GRADE_TOOL_NAMES, TASTE_GRADE_TOOL_SCHEMAS } from './tools/schemas/taste-grade-tools';
 import { BEAT_TOOL_NAMES, BEAT_TOOL_SCHEMAS } from './tools/schemas/beat-tools';
 import {
   MUSIC_INTELLIGENCE_TOOL_NAMES,
@@ -182,6 +183,9 @@ export const TOOL_SCHEMAS: AgentToolSchema[] = [
   ...COLOR_SCOPE_TOOL_SCHEMAS,
   // Technical auto grade: auto_grade analyze|apply → setFilters on eligible pool media clips.
   ...AUTO_GRADE_TOOL_SCHEMAS,
+  // Taste-based AI grading: taste_grade suggest|from_reference|record_pick|per_segment.
+  // Follows the USER'S taste (reference image / mood / learned picks), not generic auto-correction.
+  ...TASTE_GRADE_TOOL_SCHEMAS,
   // Beat detection: local DSP reports BPM, beats, and downbeats and can add timeline markers for beat cuts.
   ...BEAT_TOOL_SCHEMAS,
   // Cached Beat This + CLAP inspection, deterministic rhythm edit planning, and one-batch video splitting.
@@ -276,6 +280,7 @@ const EXECUTOR_GROUPS: ReadonlyArray<readonly [ReadonlySet<string>, ToolExecutor
   [SILENCE_TOOL_NAMES, async () => (await import('./tools/silence-tools')).execSilenceTool],
   [COLOR_SCOPE_TOOL_NAMES, async () => (await import('./tools/color-scope-tools')).execColorScopeTool],
   [AUTO_GRADE_TOOL_NAMES, async () => (await import('./tools/auto-grade-tools')).execAutoGradeTool],
+  [TASTE_GRADE_TOOL_NAMES, async () => (await import('./tools/taste-grade-tools')).execTasteGradeTool],
   [BEAT_TOOL_NAMES, async () => (await import('./tools/beat-tools')).execBeatTool],
   [MUSIC_INTELLIGENCE_TOOL_NAMES, async () => (
     await import('./tools/music-intelligence-tools')
