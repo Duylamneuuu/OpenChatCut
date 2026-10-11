@@ -92,9 +92,16 @@ async function actionVlog(args: Args, ctx: AgentContext, dryRun: boolean): Promi
 
 async function actionShort(args: Args, ctx: AgentContext, dryRun: boolean): Promise<unknown> {
   const steps: StepResult[] = [];
+  const { execTranscriptTool } = await import('./transcript-tools');
   const { execHighlightTool } = await import('./highlight-tool');
   const { execTasteGradeTool } = await import('./taste-grade-tools');
 
+  await runStep(
+    'transcribe',
+    () => execTranscriptTool('transcribe_track', {}, ctx),
+    steps,
+    dryRun,
+  );
   await runStep(
     'find_highlights',
     () => execHighlightTool('find_highlights', { count: 3 }, ctx),
