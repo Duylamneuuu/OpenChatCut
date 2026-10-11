@@ -118,7 +118,7 @@ async function actionFromReference(args: Args, ctx: AgentContext) {
   // Persist the .cube where the renderer can fetch it (/media/uploads/…).
   const fileName = `${id}.cube`;
   try {
-    const { uploadDir } = await import('../../server/media-dir');
+    const { uploadDir } = await import('../../../server/media-dir');
     const { writeFile, mkdir } = await import('node:fs/promises');
     const { join } = await import('node:path');
     const dir = uploadDir();
