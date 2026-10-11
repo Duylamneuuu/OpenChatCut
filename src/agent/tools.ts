@@ -56,6 +56,7 @@ import { SILENCE_TOOL_NAMES, SILENCE_TOOL_SCHEMAS } from './tools/schemas/silenc
 import { COLOR_SCOPE_TOOL_NAMES, COLOR_SCOPE_TOOL_SCHEMAS } from './tools/schemas/color-scope-tools';
 import { AUTO_GRADE_TOOL_NAMES, AUTO_GRADE_TOOL_SCHEMAS } from './tools/schemas/auto-grade-tools';
 import { TASTE_GRADE_TOOL_NAMES, TASTE_GRADE_TOOL_SCHEMAS } from './tools/schemas/taste-grade-tools';
+import { QUICK_EDIT_TOOL_NAMES, QUICK_EDIT_TOOL_SCHEMAS } from './tools/schemas/quick-edit-tools';
 import { BEAT_TOOL_NAMES, BEAT_TOOL_SCHEMAS } from './tools/schemas/beat-tools';
 import {
   MUSIC_INTELLIGENCE_TOOL_NAMES,
@@ -186,6 +187,8 @@ export const TOOL_SCHEMAS: AgentToolSchema[] = [
   // Taste-based AI grading: taste_grade suggest|from_reference|record_pick|per_segment.
   // Follows the USER'S taste (reference image / mood / learned picks), not generic auto-correction.
   ...TASTE_GRADE_TOOL_SCHEMAS,
+  // One-command speed editing: quick_edit vlog|short|cleanup.
+  ...QUICK_EDIT_TOOL_SCHEMAS,
   // Beat detection: local DSP reports BPM, beats, and downbeats and can add timeline markers for beat cuts.
   ...BEAT_TOOL_SCHEMAS,
   // Cached Beat This + CLAP inspection, deterministic rhythm edit planning, and one-batch video splitting.
@@ -281,6 +284,7 @@ const EXECUTOR_GROUPS: ReadonlyArray<readonly [ReadonlySet<string>, ToolExecutor
   [COLOR_SCOPE_TOOL_NAMES, async () => (await import('./tools/color-scope-tools')).execColorScopeTool],
   [AUTO_GRADE_TOOL_NAMES, async () => (await import('./tools/auto-grade-tools')).execAutoGradeTool],
   [TASTE_GRADE_TOOL_NAMES, async () => (await import('./tools/taste-grade-tools')).execTasteGradeTool],
+  [QUICK_EDIT_TOOL_NAMES, async () => (await import('./tools/quick-edit-tools')).execQuickEditTool],
   [BEAT_TOOL_NAMES, async () => (await import('./tools/beat-tools')).execBeatTool],
   [MUSIC_INTELLIGENCE_TOOL_NAMES, async () => (
     await import('./tools/music-intelligence-tools')
