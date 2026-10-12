@@ -268,7 +268,11 @@ export async function execTranscriptTool(name: string, args: Args, ctx: AgentCon
   if (name === 'read_transcript') return execReadTranscript(args, ctx);
   if (name === 'search_media') return execSearchMedia(args, ctx);
   const state = ctx.getState();
-  const track = resolveTrackId(state, args.track ?? 'A1') ?? defaultTrackId(state, 'audio');
+  const target = typeof args.itemId === 'string'
+    ? state.items.find((item) => item.id === args.itemId || item.id.startsWith(String(args.itemId)))
+    : undefined;
+  const track = resolveTrackId(state, args.track ?? target?.track ?? 'A1')
+    ?? defaultTrackId(state, 'audio') ?? defaultTrackId(state, 'video');
   if (!track) return { error: 'no track available; create one with edit_track first' };
   const alias = trackAlias(state, track);
   switch (name) {

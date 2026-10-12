@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { reduce, type Action } from './reduce';
 import { planSilenceRemoval, silenceRemovalBlocker, spansToLocalCuts } from './silenceRebuild';
 import type { TimelineItem, TimelineState } from './types';
+import { projectMediaWindowWords } from '../transcript/edit';
 
 const FPS = 30;
 
@@ -99,6 +100,28 @@ assert.deepEqual(spansToLocalCuts(clip({}), [{ startMs: 0, endMs: 10_000 }], FPS
   assert.equal(segs[0]!.fadeOutFrames, undefined, '切口不淡出');
   assert.equal(segs[1]!.fadeInFrames, undefined, '切口不淡入');
   assert.equal(segs[1]!.fadeOutFrames, 15, '末段保留 fadeOut');
+}
+
+// Consecutive video splits around a pause retain words after that pause.
+{
+  const talk = clip({ durationInFrames: 450, transcript: [
+    { text: 'before', start: 100, end: 500 },
+    { text: 'pause', start: 5600, end: 6100 },
+    { text: 'after', start: 9600, end: 10300 },
+    { text: 'ending', start: 14000, end: 14800 },
+  ], variants: [{ id: 'vi', kind: 'translation', lang: 'vi', label: 'VI', words: [
+    { i: 0, text: 'trước' }, { i: 2, text: 'sau' }, { i: 3, text: 'cuối' },
+  ] }] });
+  let id = 0;
+  const plan = planSilenceRemoval(talk, [{ fromFrame: 189, toFrame: 266 }], () => `speech_${++id}`);
+  const result = apply(baseState([talk]), plan.actions);
+  const remaining = result.items.sort((a,b) => a.startFrame-b.startFrame);
+  assert.deepEqual(remaining[1]!.transcript!.map((word) => word.text), ['after', 'ending']);
+  assert.equal(remaining[1]!.srcInFrame, 266);
+  assert.deepEqual(remaining[1]!.variants![0]!.words, [{ i: 0, text: 'sau' }, { i: 1, text: 'cuối' }]);
+  const captions = remaining.flatMap((item) => projectMediaWindowWords(item.transcript!, FPS, item).words);
+  assert.deepEqual(captions.map((word) => word.text), ['before','pause','after','ending']);
+  assert.ok(captions.at(-1)!.start > 10000, 'caption timing follows the ripple-adjusted second clip');
 }
 
 // ── Gatekeeper: variable speed/zoom/word-level editing/non-audio/video/passive ──

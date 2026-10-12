@@ -18,6 +18,12 @@ if (configuredDataDir) {
   if (!isAbsolute(configuredDataDir)) throw new Error('OPENCHATCUT_DATA_DIR must be an absolute path');
   const userData = desktopUserDataDirectory(configuredDataDir);
   mkdirSync(userData, { recursive: true });
+  // Direct shortcut launches do not inherit the setup shell's F: temp paths.
+  // Apply the portable data root before the server or agent spawns helpers.
+  const tempDir = join(configuredDataDir, 'temp');
+  mkdirSync(tempDir, { recursive: true });
+  for (const name of ['TEMP', 'TMP', 'TMPDIR']) process.env[name] = tempDir;
+  app.setPath('temp', tempDir);
   app.setPath('userData', userData);
   app.setPath('sessionData', userData);
 }

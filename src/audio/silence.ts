@@ -156,6 +156,8 @@ export async function analyzeClipSilence(
   }, samples, audioBuffer.sampleRate, context.signal);
   return removableSilenceFromEvidence(rmsQuiet, evidence, {
     featureEnabled,
-    speechPaddingMs: params.padMs,
+    speechPaddingMs: params.padMs ?? SILENCE_DEFAULTS.padMs,
+    minDurationMs: Math.max(1, (params.minSilenceMs ?? SILENCE_DEFAULTS.minSilenceMs)
+      - 2 * (params.padMs ?? SILENCE_DEFAULTS.padMs)),
   });
 }

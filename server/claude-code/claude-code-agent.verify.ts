@@ -298,10 +298,8 @@ try {
     await turn;
     assert.deepEqual(events, [{ type: 'session', sessionId: 'fake-session-hang' }],
       'an aborted turn emits no terminal error: the caller already knows it aborted');
-    // Windows spawns through a cmd.exe shim, so the pid here is a grandchild
-    // that `child.kill()` does not necessarily reach; assert the guarantee on
-    // the platforms where the CLI is the direct child.
-    if (process.platform !== 'win32') {
+    // The CLI must be gone even when a Windows cmd.exe shim is its parent.
+    {
       let alive = true;
       for (let attempt = 0; attempt < 400 && alive; attempt += 1) {
         await sleep(25);

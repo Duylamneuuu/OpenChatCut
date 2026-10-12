@@ -72,7 +72,7 @@ export async function obtainVadEvidence(
 export function removableSilenceFromEvidence(
   rmsQuietSpans: readonly SilenceSpan[],
   evidence: VadEvidenceResult | null | undefined,
-  options: { featureEnabled: boolean; minConfidence?: number; speechPaddingMs?: number },
+  options: { featureEnabled: boolean; minConfidence?: number; speechPaddingMs?: number; minDurationMs?: number },
 ): SilenceSpan[] {
   if (!options.featureEnabled || evidence?.status !== 'ready') return [];
   const minimum = options.minConfidence ?? VAD_MIN_CONFIDENCE;
@@ -84,7 +84,20 @@ export function removableSilenceFromEvidence(
       startMs: Math.max(0, span.startMs - padding),
       endMs: span.endMs + padding,
     }));
-  return rmsQuietSpans.filter((quiet) => !protectedSpeech.some((speech) => (
-    quiet.startMs < speech.endMs && quiet.endMs > speech.startMs
-  )));
+  // A speech tail can overlap only the edge of a long quiet candidate. Keep
+  // the confirmed quiet interior instead of discarding the entire pause.
+  const minDuration = Math.max(1, options.minDurationMs ?? 300);
+  return rmsQuietSpans.flatMap((quiet) => {
+    let fragments = [{ ...quiet }];
+    for (const speech of protectedSpeech) {
+      fragments = fragments.flatMap((span) => {
+        if (span.startMs >= speech.endMs || span.endMs <= speech.startMs) return [span];
+        const remaining: SilenceSpan[] = [];
+        if (span.startMs < speech.startMs) remaining.push({ startMs: span.startMs, endMs: speech.startMs });
+        if (span.endMs > speech.endMs) remaining.push({ startMs: speech.endMs, endMs: span.endMs });
+        return remaining;
+      });
+    }
+    return fragments.filter((span) => span.endMs - span.startMs >= minDuration);
+  });
 }

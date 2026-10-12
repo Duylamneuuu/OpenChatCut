@@ -306,11 +306,20 @@ export function splitClipTranscript(
   clip: ClipTranscriptState,
   fps: number,
   cutFrames: number,
+  options: { sourceFrames?: boolean } = {},
 ): { k: number; left: ClipTranscriptState; right: ClipTranscriptState } | null {
   const words = clip.transcript;
   if (!words?.length) return null;
   const deleted = new Set(clip.deletedWordIdx ?? []);
-  const k = sourceSplitIndex(words, deleted, fps, cutFrames, { maxGapFrames: clip.silenceFrames, gapCapsMs: clip.gapCapsMs });
+  // Video plays an absolute media window. After a first split its transcript
+  // still uses source timestamps; interpreting a second cut in edited-word
+  // time consumes the remaining speech and leaves the right clip empty.
+  const sourceIndex = options.sourceFrames
+    ? words.findIndex((word) => msToFrame(word.start, fps) >= cutFrames)
+    : -1;
+  const k = options.sourceFrames
+    ? sourceIndex < 0 ? words.length : sourceIndex
+    : sourceSplitIndex(words, deleted, fps, cutFrames, { maxGapFrames: clip.silenceFrames, gapCapsMs: clip.gapCapsMs });
 
   const del = clip.deletedWordIdx ?? [];
   const leftCaps: Record<string, number> = {};

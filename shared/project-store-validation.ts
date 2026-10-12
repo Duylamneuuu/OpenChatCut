@@ -1,7 +1,8 @@
 import { parseAgentSessionGenerationRecord } from './agent-session-generation.ts';
 import type { ProjectStoreRequest } from './project-store-transport.ts';
 
-const VALID_KEY = /^(?!__proto__$)(?!prototype$)(?!constructor$)[a-zA-Z0-9:_-]{1,300}$/;const VALID_AGENT_PROJECT_ID = /^[a-zA-Z0-9_-]{1,160}$/;
+const VALID_KEY = /^(?!__proto__$)(?!prototype$)(?!constructor$)[a-zA-Z0-9:_-]{1,300}$/;
+const VALID_AGENT_PROJECT_ID = /^[a-zA-Z0-9_-]{1,160}$/;
 const SEMANTIC_EMBEDDING_DIMENSION = 512;
 const VALID_AGENT_ARTIFACT_ID = /^[a-zA-Z0-9_-]{1,20}$/;
 const VALID_SESSION_GENERATION = /^[a-zA-Z0-9_-]{1,80}$/;
@@ -209,7 +210,20 @@ export function isAgentArtifactStoreValue(key: string, value: unknown): value is
 }
 
 export function isProjectStoreKey(value: unknown): value is string {
-  if (typeof value !== 'string' || !VALID_KEY.test(value)) return false;
+  if (typeof value !== 'string') return false;
+  // VAD uses canonical URI-encoded components and a fixed decimal threshold.
+  // Rejecting this cache key disables shared storage for the whole editor,
+  // leaving every subsequent project write pending in IndexedDB.
+  if (value.startsWith('vad-evidence:')) {
+    if (value.length > 300) return false;
+    const parts = value.split(':');
+    if (parts.length !== 6 || !/^(?:0\.\d{3}|1\.000)$/.test(parts[5]!)) return false;
+    try {
+      return parts.slice(1,5).every((part) => part.length > 0
+        && encodeURIComponent(decodeURIComponent(part)) === part);
+    } catch { return false; }
+  }
+  if (!VALID_KEY.test(value)) return false;
   if (STRICT_PROJECT_SCOPED_PREFIX.test(value)) {
     return projectIdFromProjectStoreKey(value) !== undefined;
   }

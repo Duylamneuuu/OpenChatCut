@@ -15,7 +15,7 @@ const DEFAULT_TARGET_LUFS = -14;
 
 /** Target audio clip collection: given the itemId, only find that one (prefix matching), otherwise all audio clips on the timeline. */
 function findAudioItems(ctx: AgentContext, itemId: unknown) {
-  const audioItems = ctx.getState().items.filter((it) => it.kind === 'audio');
+  const audioItems = ctx.getState().items.filter((it) => it.kind === 'audio' || it.kind === 'video');
   const q = itemId === undefined || itemId === null ? '' : String(itemId);
   if (!q) return audioItems;
   const match = audioItems.find((it) => it.id === q || it.id.startsWith(q));
@@ -52,7 +52,9 @@ export async function execLoudnessTool(name: string, args: Args, ctx: AgentConte
         continue;
       }
       const measuredLufs = analysis.value;
-      const gain = gainForTarget(measuredLufs, target);
+      // The timeline volume command supports up to 2x. Report the same gain
+      // that is actually applied rather than a larger, silently clamped value.
+      const gain = Math.min(2, gainForTarget(measuredLufs, target));
       ctx.commands.setItemVolume(snapshot.itemId, gain);
       normalized.push({ itemId: snapshot.itemId, measuredLufs, gain });
     } catch (e) {

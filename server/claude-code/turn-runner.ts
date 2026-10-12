@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
 import { tmpdir } from 'node:os';
@@ -309,11 +309,32 @@ export async function runClaudeCodeTurn(
       windowsVerbatimArguments: command.windowsVerbatimArguments,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
+    // Subscribe before consuming stdout: a fast CLI can exit before the loop
+    // drains its final line. Windows shims also require terminating descendants.
+    const exited = new Promise<number | null>((resolve) => child.once('close', resolve));
+    let termination: Promise<void> | undefined;
+    const stopChild = (): Promise<void> => {
+      if (termination) return termination;
+      if (process.platform === 'win32' && child.pid) {
+        termination = new Promise<void>((resolve) => {
+          execFile(join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe'),
+            ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true }, (error) => {
+              if (error && child.exitCode === null && child.signalCode === null) child.kill();
+              resolve();
+            });
+        });
+      } else {
+        child.kill();
+        termination = Promise.resolve();
+      }
+      return termination;
+    };
     const pendingTools = new Map<string, PendingToolUse>();
     let sawResult = false;
     let stderrTail = '';
-    const onAbort = () => { child.kill(); };
+    const onAbort = () => { void stopChild(); };
     signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) onAbort();
     const rl = createInterface({ input: child.stdout, crlfDelay: Infinity });
     child.stderr.on('data', (chunk: Buffer) => {
       stderrTail = (stderrTail + chunk.toString('utf8')).slice(-4000);
@@ -333,9 +354,7 @@ export async function runClaudeCodeTurn(
         if (record_.type === 'result') sawResult = true;
         for (const event of translateClaudeCodeLine(record_, pendingTools)) emit(event);
       }
-      const { promise, resolve } = Promise.withResolvers<number | null>();
-      child.once('exit', (code) => resolve(code));
-      const exitCode = await promise;
+      const exitCode = await exited;
       if (!sawResult) {
         if (signal.aborted) {
           // Aborted before completion — no terminal event needed, the caller already knows.
@@ -348,7 +367,7 @@ export async function runClaudeCodeTurn(
     } finally {
       signal.removeEventListener('abort', onAbort);
       rl.close();
-      if (!child.killed) child.kill();
+      if (child.exitCode === null && child.signalCode === null) await stopChild();
     }
   });
 }

@@ -6,7 +6,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { PARALLEL_TOOL_NAMES, toolExecutionMode } from './tools/execution-modes';
-import { generationTimeoutMs } from './client';
+import { generationTimeoutMs, generateAgentText } from './client';
+import { applyAgentModelStatus, applyCodexAgentStatus, selectAgentModel } from './model-selection';
 
 // ── detect_beats:按参数分类 ──────────────────────────────────────────────
 {
@@ -52,4 +53,37 @@ import { generationTimeoutMs } from './client';
   assert.equal(generationTimeoutMs(8_000), 200_000, 'mid-size budgets scale linearly');
 }
 
+// Text subtasks (highlight selection and caption translation) must use the
+// selected Codex account instead of silently falling back to an API key.
+{
+  applyAgentModelStatus({}, {});
+  applyCodexAgentStatus({ installed: true, version: '1.0.0', loginPending: false,
+    account: { type: 'chatgpt', email: null, planType: 'plus' } }, 'codex-test', '', [{
+      id: 'codex-test', label: 'Test', isDefault: true, defaultReasoningEffort: 'low',
+      supportedReasoningEfforts: [{ reasoningEffort: 'low', description: '' }],
+    }]);
+  selectAgentModel('codex:codex-test');
+  const originalFetch = globalThis.fetch;
+  let fail = false;
+  globalThis.fetch = (async (input, init) => {
+    assert.equal(String(input), '/api/codex/turn', 'no /llm API-key request');
+    const body = JSON.parse(String(init?.body));
+    assert.equal(body.model, 'codex-test');
+    assert.equal(body.askOnly, true);
+    assert.deepEqual(body.tools, []);
+    assert.match(body.prompt, /highlight/);
+    const events = fail
+      ? [{ type: 'error', message: 'Codex unavailable' }]
+      : [{ type: 'text-delta', delta: '[{"title":"Test"}]' }, { type: 'done' }];
+    return new Response(events.map((event) => JSON.stringify(event)).join('\n') + '\n', {
+      headers: { 'content-type': 'application/x-ndjson' },
+    });
+  }) as typeof fetch;
+  try {
+    assert.equal(await generateAgentText({ prompt: 'select a highlight', maxOutputTokens: 1000 }), '[{"title":"Test"}]');
+    assert.equal(await generateAgentText({ messages: [{ role: 'user', content: 'select a highlight' }], maxOutputTokens: 1000 }), '[{"title":"Test"}]');
+    fail = true;
+    await assert.rejects(generateAgentText({ prompt: 'select a highlight', maxOutputTokens: 1000 }), /Codex unavailable/);
+  } finally { globalThis.fetch = originalFetch; }
+}
 console.log('execution-modes.verify: ok');

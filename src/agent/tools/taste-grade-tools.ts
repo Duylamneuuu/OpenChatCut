@@ -166,12 +166,22 @@ async function actionPerSegment(args: Args, ctx: AgentContext) {
   // after scene-split). Scene-aware splitting per clip is the follow-up.
   const applied: string[] = [];
   for (const it of targets) {
+    const existing = it.effects?.find((candidate) => candidate.assetId === assetId);
     const effect: ClipEffect = {
-      id: `fx_${Math.random().toString(36).slice(2)}`,
+      ...existing,
+      id: existing?.id ?? `fx_${Math.random().toString(36).slice(2)}`,
       assetId,
-      overrides: { intensity },
+      overrides: { ...existing?.overrides, intensity },
     };
-    ctx.commands.setItemEffects(it.id, [...(it.effects ?? []), effect], serializableDefsFor([effect]));
+    let inserted = false;
+    const effects = (it.effects ?? []).flatMap((candidate) => {
+      if (candidate.assetId !== assetId) return [candidate];
+      if (inserted) return [];
+      inserted = true;
+      return [effect];
+    });
+    if (!inserted) effects.push(effect);
+    ctx.commands.setItemEffects(it.id, effects, serializableDefsFor([effect]));
     applied.push(it.id);
   }
   await recordTastePick(assetId, ALL_FX[assetId]!.name);

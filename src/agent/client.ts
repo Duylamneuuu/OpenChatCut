@@ -221,6 +221,26 @@ export async function generateAgentText(options: {
   messages?: readonly unknown[];
   maxOutputTokens: number;
 }): Promise<string> {
+  const active = getActiveAgentModelChoice();
+  if (active?.backend === 'codex') {
+    const [{ runCodexSummary }, { serializeMessagesForPrompt }] = await Promise.all([
+      import('./codex/summary'), import('./context-messages'),
+    ]);
+    const maxOutputTokens = Math.min(options.maxOutputTokens, effectiveOutputTokenBudget(
+      active.capabilities.maxOutputTokens.value, active.capabilities.contextWindowTokens.value,
+    ));
+    return runCodexSummary({
+      system: options.system ?? '',
+      prompt: options.messages
+        ? serializeMessagesForPrompt(normalizeLlmMessages(options.messages))
+        : options.prompt ?? '',
+      projectId: crypto.randomUUID(),
+      model: active.model,
+      reasoningEffort: active.reasoningEffort,
+      maxOutputTokens,
+      signal: AbortSignal.timeout(generationTimeoutMs(maxOutputTokens)),
+    });
+  }
   const choice = generationChoice();
   const provider = choice?.provider ?? PROVIDER;
   const model = choice?.model ?? MODEL;
