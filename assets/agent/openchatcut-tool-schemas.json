@@ -2995,12 +2995,20 @@
             "enum": [
               "480p",
               "720p",
-              "1080p"
+              "1080p",
+              "4k"
             ],
-            "description": "Video only. Scale by the short side; omit to use the timeline size."
+            "description": "Video only. 4k targets a 2160-pixel short side. Omit to use the timeline size."
           },
           "fps": {
             "type": "integer",
+            "enum": [
+              24,
+              25,
+              30,
+              50,
+              60
+            ],
             "description": "Video only. Target frame rate, one of 24/25/30/50/60; omit to use the timeline fps."
           },
           "videoBitrate": {

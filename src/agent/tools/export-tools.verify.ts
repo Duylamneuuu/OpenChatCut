@@ -89,7 +89,7 @@ globalThis.fetch = (async (url: RequestInfo | URL, init?: RequestInit) => {
   return new Response(JSON.stringify({ renderId: 'r-123' }), { status: 200 });
 }) as typeof fetch;
 
-const submit = await execExportTool('submit_render_job', { format: 'video', codec: 'h264', name: 'final.mp4', startFrame: 0, endFrameExclusive: 90 }, {
+const submit = await execExportTool('submit_render_job', { format: 'video', codec: 'h264', resolution: '4k', fps: 60, name: 'final.mp4', startFrame: 0, endFrameExclusive: 90 }, {
   ...ctx,
   getProjectId: () => 'project-export',
 }) as { ok?: boolean; renderId?: string };
@@ -108,6 +108,8 @@ const rec = posted as { url: string; body: Record<string, unknown> };
 assert.strictEqual(rec.url, '/export/job');
 assert.strictEqual(rec.body.format, 'video');
 assert.strictEqual(rec.body.codec, 'h264');
+assert.strictEqual(rec.body.resolution, '4k', 'AI export must forward the 4K preset');
+assert.strictEqual(rec.body.fps, 60, 'AI export must forward the requested 60 fps');
 assert.strictEqual(rec.body.name, 'final.mp4');
 assert.strictEqual(rec.body.startFrame, 0);
 assert.strictEqual(rec.body.endFrameExclusive, 90);
@@ -309,6 +311,8 @@ assert.deepStrictEqual(await fetchRenderJob('r-123'), { error: 'connection close
   const submitSchema = EXPORT_TOOL_SCHEMAS.find((t) => t.name === 'submit_render_job')!;
   const submitProperties = (submitSchema.input_schema as { properties: Record<string, unknown> }).properties;
   assert.ok('saveToMediaPool' in submitProperties, 'submit_render_job can retain a derived asset in My Media');
+  assert.ok((submitProperties.resolution as { enum: string[] }).enum.includes('4k'), 'AI tool discovery must advertise 4K');
+  assert.ok((submitProperties.fps as { enum: number[] }).enum.includes(60), 'AI tool discovery must advertise 60 fps');
   const schema = EXPORT_TOOL_SCHEMAS.find((t) => t.name === 'track_export')!;
   const s = schema.input_schema as { required?: string[]; properties: Record<string, unknown> };
   assert.deepStrictEqual(s.required, ['action'], 'track_export requires only action (NOT renderId)');

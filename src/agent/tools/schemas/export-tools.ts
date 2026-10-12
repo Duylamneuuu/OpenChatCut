@@ -1,4 +1,5 @@
 import type { AgentToolSchema } from '../../tool-schema';
+import { EXPORT_FPS_OPTIONS, EXPORT_RESOLUTIONS } from '../../../export/mediaSettings';
 
 const MAX_WAIT_SECONDS = 3600;
 
@@ -12,8 +13,8 @@ export const EXPORT_TOOL_SCHEMAS: AgentToolSchema[] = [
       properties: {
         format: { type: 'string', enum: ['video', 'audio'], description: 'Defaults to video.' },
         codec: { type: 'string', enum: ['h264', 'vp8', 'mp3', 'wav'], description: 'Video: h264 (default) or vp8. Audio: mp3 (default) or wav.' },
-        resolution: { type: 'string', enum: ['480p', '720p', '1080p'], description: 'Video only. Scale by the short side; omit to use the timeline size.' },
-        fps: { type: 'integer', description: 'Video only. Target frame rate, one of 24/25/30/50/60; omit to use the timeline fps.' },
+        resolution: { type: 'string', enum: Object.keys(EXPORT_RESOLUTIONS), description: 'Video only. 4k targets a 2160-pixel short side. Omit to use the timeline size.' },
+        fps: { type: 'integer', enum: [...EXPORT_FPS_OPTIONS], description: 'Video only. Target frame rate, one of 24/25/30/50/60; omit to use the timeline fps.' },
         videoBitrate: { type: 'integer', minimum: 1_000_000, maximum: 80_000_000, description: 'Video only. Exact output bitrate in bits per second; omit for the renderer default.' },
         name: { type: 'string', description: 'Download filename.' },
         startFrame: { type: 'integer', minimum: 0 },
