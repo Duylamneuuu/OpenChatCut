@@ -92,7 +92,8 @@ export interface ServerRunInput {
 
 /** Narrow a persisted or request-supplied backend string to the known set. */
 export function serverRunBackend(value: unknown): ModelBackend {
-  return value === 'codex' || value === 'copilot' || value === 'claude-code' ? value : 'api';
+  return value === 'codex' || value === 'copilot' || value === 'claude-code'
+    || value === 'opencode' || value === 'antigravity' ? value : 'api';
 }
 
 type ServerTurnInput = Omit<ServerContextInput, 'schemas'> & {
@@ -314,7 +315,7 @@ async function createExecutionPlan(run: ServerRun, input: ServerRunInput) {
     maxInputTokens,
     activation,
     prompt,
-    model: backend === 'codex' || backend === 'copilot' || backend === 'claude-code'
+    model: backend !== 'api'
       ? undefined
       : createServerLanguageModel(
           provider,
@@ -357,6 +358,18 @@ async function executeRunTurns(
       plan.backend === 'codex'
         ? (async () => (await import('./codex-turn'))
           .executeServerCodexTurn(subprocessTurnInput))()
+        : plan.backend === 'opencode' || plan.backend === 'antigravity'
+          ? (async () => {
+            const [{ executeServerCodexTurn }, { runServerCliTurn }, { settleCliToolResult }] = await Promise.all([
+              import('./codex-turn'), import('../cli-agent/turn-runner'), import('../cli-agent/tool-bridge'),
+            ]);
+            const backend = plan.backend as 'opencode' | 'antigravity';
+            return executeServerCodexTurn(subprocessTurnInput, {
+              label: backend,
+              runTurn: (request, emit, abortSignal) => runServerCliTurn(backend, request, emit, abortSignal),
+              settleToolResult: (result) => { settleCliToolResult(result); return 'ok'; },
+            });
+          })()
         : plan.backend === 'claude-code'
           ? (async () => (await import('./claude-code-turn'))
             .executeServerClaudeCodeTurn(subprocessTurnInput))()

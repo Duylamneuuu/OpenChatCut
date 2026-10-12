@@ -124,7 +124,7 @@ export function submitCodexToolResult(result: CodexToolResultRequest): Promise<v
 }
 
 
-async function consumeNdjson(
+export async function consumeNdjson(
   body: ReadableStream<Uint8Array>,
   onEvent: (event: CodexTurnStreamEvent) => void | Promise<void>,
 ): Promise<void> {

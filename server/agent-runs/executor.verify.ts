@@ -109,6 +109,11 @@ for (const preset of LLM_PROVIDER_PRESETS) {
 }
 assert.equal(resolveRunExecution({ backend: 'codex', provider: 'retired-provider' }, validatedRequest,
   'http://localhost:5199', false).provider, 'openai', 'Codex keeps its own provider attribution');
+for (const backend of ['opencode', 'antigravity']) {
+  const execution = resolveRunExecution({ backend, provider: 'retired-provider' }, validatedRequest, 'http://localhost:5199', false);
+  assert.equal(execution.backend, backend, 'CLI backends must not silently become API requests');
+  assert.equal(execution.model, validatedRequest.model);
+}
 assert.equal(validatedRequest.runId, validRequest.runId);
 assert.equal(validatedRequest.capability, validRequest.capability);
 assert.equal(validatedRequest.cacheMode, 'long');

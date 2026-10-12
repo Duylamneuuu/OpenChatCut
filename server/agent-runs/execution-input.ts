@@ -28,11 +28,13 @@ export function resolveRunExecution(
       ? { provider: 'anthropic', model: '' }
       : backend === 'copilot'
         ? { provider: copilotProviderForModel(requestedModel), model: '' }
+        : backend === 'opencode' || backend === 'antigravity'
+          ? { provider: copilotProviderForModel(requestedModel.split('/').at(-1) || requestedModel), model: '' }
         : resolveLlmProviderConfig(requireLlmProvider(
           provider === undefined || provider === null || provider === '' ? getKey('LLM_PROVIDER') : provider,
         ), readKey);
   const effectiveProvider = normalizeLlmProvider(config.provider);
-  const effectiveModel = backend === 'copilot'
+  const effectiveModel = backend === 'copilot' || backend === 'opencode' || backend === 'antigravity'
     ? requestedModel
     : requestedModel || config.model || defaultModelForProvider(effectiveProvider);
   const openAiApiMode = resolveModelRequestPolicy(effectiveProvider, body.openAiApiMode).apiMode;
@@ -77,7 +79,7 @@ export function runRequestDigests(
       context: input.context,
       provider: execution.provider,
       model: execution.model,
-      ...(execution.backend === 'copilot'
+      ...(execution.backend === 'copilot' || execution.backend === 'opencode' || execution.backend === 'antigravity'
         ? { backend: execution.backend, reasoningEffort: execution.reasoningEffort ?? null } : {}),
       ...(execution.backend === 'claude-code'
         ? { approvalMode: execution.approvalMode ?? null } : {}),

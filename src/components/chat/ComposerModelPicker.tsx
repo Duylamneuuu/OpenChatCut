@@ -7,8 +7,10 @@ import type { ComposerModelView } from './useComposerModelView';
 import codexPng from '../../../assets/vendor-icons/codex-color.png';
 import copilotSvg from '../../../assets/vendor-icons/copilot.svg?raw';
 import claudeSvg from '../../../assets/vendor-icons/claude-color.svg';
+import { VendorIcon } from '../settings/vendorIcons';
 
-function ChoiceLogo({ backend }: { backend: 'api' | 'codex' | 'copilot' | 'claude-code' }) {
+function ChoiceLogo({ backend }: { backend: 'api' | 'codex' | 'copilot' | 'claude-code' | 'opencode' | 'antigravity' }) {
+  if (backend === 'opencode' || backend === 'antigravity') return <VendorIcon vendor={backend} size={18} />;
   if (backend === 'copilot') {
     return (
       <span

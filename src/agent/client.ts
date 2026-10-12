@@ -12,6 +12,7 @@ import { normalizeLlmMessages, withoutModelImages } from './messages';
 import { getActiveAgentModelChoice, getAgentModelSnapshot, type AgentModelChoice } from './model-selection';
 import { effectiveOutputTokenBudget } from './context-compaction';
 import type { AgentCacheMode } from './settings/agentSettings';
+import { isCliAgentBackend } from '../../shared/cli-agent';
 
 export {
   MODEL,
@@ -222,6 +223,20 @@ export async function generateAgentText(options: {
   maxOutputTokens: number;
 }): Promise<string> {
   const active = getActiveAgentModelChoice();
+  if (active && isCliAgentBackend(active.backend)) {
+    const [{ generateCliAgentText }, { serializeMessagesForPrompt }] = await Promise.all([
+      import('./cli-agent/client'), import('./context-messages'),
+    ]);
+    const maxOutputTokens = Math.min(options.maxOutputTokens, effectiveOutputTokenBudget(
+      active.capabilities.maxOutputTokens.value, active.capabilities.contextWindowTokens.value,
+    ));
+    return generateCliAgentText(active.backend, {
+      system: options.system ?? '', prompt: options.messages
+        ? serializeMessagesForPrompt(normalizeLlmMessages(options.messages)) : options.prompt ?? '',
+      projectId: crypto.randomUUID(), model: active.model, maxOutputTokens,
+      signal: AbortSignal.timeout(generationTimeoutMs(maxOutputTokens)),
+    });
+  }
   if (active?.backend === 'codex') {
     const [{ runCodexSummary }, { serializeMessagesForPrompt }] = await Promise.all([
       import('./codex/summary'), import('./context-messages'),

@@ -148,5 +148,15 @@ export const PROXY_PAGE: SettingsVendorPage = {
 
 export const AGENT_VENDOR_PAGES_WITH_VISION: readonly SettingsVendorPage[] = [
   ...AGENT_VENDOR_PAGES,
+  ...(['opencode', 'antigravity'] as const).map((backend): SettingsVendorPage => ({
+    key: `llm/${backend}`, vendor: backend, connection: backend,
+    title: backend === 'opencode' ? 'OpenCode CLI' : 'Antigravity CLI',
+    note: 'Use the local CLI to drive OpenChatCut editing tools. Model selection is saved independently for each CLI.',
+    fields: [
+      { name: `${backend.toUpperCase()}_MODEL`, label: 'Model', kind: 'text', defaultLabel: '', discoverableModel: true },
+      { name: `${backend.toUpperCase()}_CLI_PATH`, label: 'CLI executable path', kind: 'text', defaultLabel: '',
+        note: 'Leave blank to detect an existing installation.' },
+    ],
+  })),
   VISION_PAGE,
 ];

@@ -71,10 +71,11 @@ async function summarizeWithCodex(
   prompt: string,
   maxOutputTokens: number,
   systemPrompt: string,
+  runTurn = runServerCodexTurn,
 ): Promise<string> {
   const requestId = `summary-${input.run.id}-${input.requestIndex}-${crypto.randomUUID().slice(0, 8)}`;
   let text = '';
-  await runServerCodexTurn(
+  await runTurn(
     {
       requestId,
       system: systemPrompt,
@@ -82,6 +83,7 @@ async function summarizeWithCodex(
       projectId: input.projectId,
       askOnly: true,
       tools: [],
+      model: input.model,
     },
     (event) => {
       if (event.type === 'text-delta') text += event.delta;
@@ -94,6 +96,7 @@ async function summarizeWithCodex(
 
 async function prepareCodexContext(
   input: ServerCodexTurnInput,
+  runTurn = runServerCodexTurn,
 ): Promise<Awaited<ReturnType<typeof prepareContext>>> {
   const prepared = await prepareContext({
     messages: [...input.messages],
@@ -111,7 +114,7 @@ async function prepareCodexContext(
       input.maxOutputTokens,
       (prompt: string, maxOutputTokens: number, systemPrompt?: string) => {
         if (!systemPrompt) throw new Error('Context summary system prompt is unavailable.');
-        return summarizeWithCodex(input, prompt, maxOutputTokens, systemPrompt);
+        return summarizeWithCodex(input, prompt, maxOutputTokens, systemPrompt, runTurn);
       },
     ),
   });
@@ -122,6 +125,8 @@ async function prepareCodexContext(
 }
 
 export interface ServerCodexTurnDeps {
+  readonly label?: string;
+  readonly settleToolResult?: typeof codexTurnManager.settleToolResult;
   /** Overridable for verification; defaults to the real server Codex runner. */
   readonly runTurn?: (
     request: CodexTurnRequest,
@@ -148,7 +153,7 @@ export async function executeServerCodexTurn(
   followupText: string | null;
   hitMaxTokens: boolean;
 }> {
-  const prepared = await prepareCodexContext(input);
+  const prepared = await prepareCodexContext(input, deps.runTurn);
   const activeSchemas = input.activation.current.schemas();
   const schemas = input.activation.current.allSchemas();
   const requestId = `run-${input.run.id}-${input.requestIndex}`;
@@ -165,7 +170,7 @@ export async function executeServerCodexTurn(
     success: boolean,
     result: unknown,
   ): void => {
-    void codexTurnManager.settleToolResult({
+    void (deps.settleToolResult ?? ((result) => codexTurnManager.settleToolResult(result)))({
       requestId,
       callId,
       success,
@@ -269,7 +274,7 @@ export async function executeServerCodexTurn(
     throw new Error(errorMessage);
   }
   if (!done) {
-    throw new Error('Codex turn ended without a terminal event.');
+    throw new Error(`${deps.label ?? 'Codex'} turn ended without a terminal event.`);
   }
   const messages: ModelMessage[] = [
     ...prepared.messages,

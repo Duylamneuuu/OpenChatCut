@@ -50,6 +50,7 @@ import { externalAgentPlugin } from "./external-agent.ts";
 import { codexAgentPlugin } from "./codex-agent.ts";
 import { copilotAgentPlugin } from "./copilot-agent.ts";
 import { claudeCodeAgentPlugin } from "./claude-code-agent.ts";
+import { cliAgentsPlugin } from "./cli-agents.ts";
 import { xaiOauthPlugin } from "./xai-oauth.ts";
 import { llmProxyPlugin } from "./llm-proxy.ts";
 import { agentRunsPlugin } from "../agent-runs/routes.ts";
@@ -84,6 +85,7 @@ export function serverPlugins(options: { projectStoreHttp?: boolean } = {}): Plu
     codexAgentPlugin(),
     copilotAgentPlugin(),
     claudeCodeAgentPlugin(),
+    cliAgentsPlugin(),
     settingsPlugin(),
     exportStagePlugin(),
     exportPlugin(),

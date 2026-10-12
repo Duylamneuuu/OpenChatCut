@@ -113,8 +113,10 @@ async function prepareServerRunPayload(
     || (choice.backend !== 'api'
       && choice.backend !== 'codex'
       && choice.backend !== 'copilot'
-      && choice.backend !== 'claude-code')) {
-    environment.appendMessage({ role: 'error', text: '服务端运行仅支持已配置的 API / Codex / Copilot / Claude Code 模型。' });
+      && choice.backend !== 'claude-code'
+      && choice.backend !== 'opencode'
+      && choice.backend !== 'antigravity')) {
+    environment.appendMessage({ role: 'error', text: 'Please configure an API or CLI agent in Settings.' });
     return null;
   }
   return buildPreparedServerRun({

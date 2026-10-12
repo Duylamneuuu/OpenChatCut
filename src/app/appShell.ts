@@ -5,6 +5,9 @@ import { applyLiveCaps, applyLiveKeyStatus, applyLiveModels } from '../agent/cap
 import { fetchCodexModels, fetchCodexStatus } from '../agent/codex/client';
 import { fetchCopilotModels, fetchCopilotStatus } from '../agent/copilot/client';
 import { fetchClaudeCodeModels, fetchClaudeCodeStatus } from '../agent/claude-code/client';
+import { fetchCliAgentModels, fetchCliAgentStatus } from '../agent/cli-agent/client';
+import { applyCliAgentStatus } from '../agent/model-selection';
+import { CLI_AGENT_BACKENDS, cliAgentConfigPrefix, type CliAgentBackend } from '../../shared/cli-agent';
 import { applyAgentModelStatus, applyClaudeCodeAgentStatus, applyCodexAgentStatus, applyCopilotAgentStatus, selectAgentModel, getActiveAgentModelChoice, getAgentModelSnapshot } from '../agent/model-selection';
 import { loadAgentModelPref } from '../persist/sessionPrefs';
 import type { ProjectDoc, TimelineState } from '../editor/types';
@@ -90,6 +93,14 @@ async function syncClaudeCodeBackend(isActive: () => boolean, savedModel?: strin
   }
 }
 
+async function syncCliBackend(backend: CliAgentBackend, isActive: () => boolean, savedModel: string): Promise<void> {
+  try {
+    const status = await fetchCliAgentStatus(backend);
+    if (!isActive()) return;
+    const discovered = status.installed && status.supported ? await fetchCliAgentModels(backend) : null;
+    if (isActive()) applyCliAgentStatus(backend, status, savedModel, discovered?.models ?? []);
+  } catch { /* Optional CLI availability must not block other agents. */ }
+}
 export async function syncAgentBackends(isActive: () => boolean): Promise<void> {
   const [keyResult, codexResult] = await Promise.allSettled([
     fetch('/api/keys').then(async (response): Promise<LiveAgentStatus> => {
@@ -112,6 +123,9 @@ export async function syncAgentBackends(isActive: () => boolean): Promise<void> 
       savedCodexModel = models.CODEX_MODEL;
       savedCodexReasoningEffort = models.CODEX_REASONING_EFFORT;
       savedClaudeCodeModel = models.CLAUDE_CODE_MODEL;
+      for (const backend of CLI_AGENT_BACKENDS) {
+        void syncCliBackend(backend, isActive, models[`${cliAgentConfigPrefix(backend)}_MODEL`] || '');
+      }
       if (models.COPILOT_MODEL || loadAgentModelPref()?.startsWith('copilot:')) {
         void syncCopilotBackend(isActive, models.COPILOT_MODEL, models.COPILOT_REASONING_EFFORT);
       }

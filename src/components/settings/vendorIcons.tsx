@@ -44,7 +44,7 @@ export type VendorId =
   | 'seedance' | 'kling' | 'mureka' | 'sonilo' | 'pexels' | 'pixabay' | 'unsplash' | 'freesound'
   | 'assemblyai' | 'deepgram' | 'groq' | 'cartesia' | 'e2b' | 'firecrawl' | 'r2' | 'localdisk' | 'localasr'
   | 'stepfun' | 'byteplus' | 'inworld' | 'fishaudio' | 'speechify' | 'wavespeed'
-  | 'vision' | 'proxy' | 'atlas' | 'xai' | 'xai-oauth' | 'copilot' | 'ofox' | 'fal' | 'uploadpost';
+  | 'vision' | 'proxy' | 'atlas' | 'xai' | 'xai-oauth' | 'copilot' | 'ofox' | 'fal' | 'uploadpost' | 'opencode' | 'antigravity';
 
 interface SvgIcon {
   readonly svg: string;
@@ -110,6 +110,8 @@ const MONOGRAMS: Partial<Record<VendorId, { bg: string; mono: string; fg?: strin
   orcarouter: { bg: '#0F172A', mono: 'OR', fg: '#38BDF8' }, // OrcaRouter gateway, no official SVG vendored yet
   requesty: { bg: '#34363c', mono: 'RQ', fg: '#f7f7f8' }, // Requesty gateway, no official SVG vendored yet
   uploadpost: { bg: '#4F46E5', mono: 'UP', fg: '#f7f7f8' }, // Upload-Post social publishing, no official SVG vendored yet
+  opencode: { bg: '#18181b', mono: 'OC', fg: '#fafafa' },
+  antigravity: { bg: '#1d3557', mono: 'AG', fg: '#a8dadc' },
   cheaperinference: { bg: '#0B1F17', mono: 'CI', fg: '#34D399' }, // Cheaper Inference gateway, no official SVG vendored yet
 };
 

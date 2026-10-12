@@ -16,6 +16,7 @@ import { setAutoTranscribeIngest } from '../../transcript/provider';
 import { FieldRow, ON, VendorPane, WARN, type FieldCtx } from './settingsVendorPane';
 import { useCodexSettings } from './useCodexSettings';
 import { useClaudeCodeSettings } from './useClaudeCodeSettings';
+import { useCliAgentSettings } from './useCliAgentSettings';
 import type { CodexAgentStatus } from '../../../shared/codex-agent';
 import type { CopilotAgentStatus } from '../../../shared/copilot-agent';
 import type { ClaudeCodeAgentStatus } from '../../../shared/claude-code-agent';
@@ -231,6 +232,8 @@ function useFieldContext(
   );
   const copilot = useCopilotSettings(copilotEnabled);
   const claudeCode = useClaudeCodeSettings(modelValue(status, 'CLAUDE_CODE_MODEL'));
+  const opencode = useCliAgentSettings('opencode', modelValue(status, 'OPENCODE_MODEL'));
+  const antigravity = useCliAgentSettings('antigravity', modelValue(status, 'ANTIGRAVITY_MODEL'));
   const onStage = (field: SettingsField, raw: string): void => {
     const staged = stageFieldValue(values, field, raw, status, codex.models, autoClearedEffort);
     setValues(staged.values);
@@ -252,6 +255,7 @@ function useFieldContext(
   };
   return {
     status, values, reveal, onStage, onToggleClear, modelOptions, codex, copilot, claudeCode,
+    cliAgents: { opencode, antigravity },
     refreshStatus, openPage,
     onModelsDiscovered: (name, models) => {
       setModelOptions((previous) => ({ ...previous, [name]: [...new Set(models)] }));

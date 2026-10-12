@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {
-  applyClaudeCodeAgentStatus, getAgentModelSnapshot, isAgentModelReady, type AgentModelSnapshot,
+  applyClaudeCodeAgentStatus, applyCliAgentStatus, selectAgentModel, getAgentModelSnapshot, isAgentModelReady, type AgentModelSnapshot,
 } from './model-selection';
 import {
   parseModelCapabilityOverrides,
@@ -148,4 +148,17 @@ assert.equal(claudeCodeChoice!.model, 'sonnet');
 assert.equal(claudeCodeSnapshot.activeId, 'claude-code:sonnet',
   'the sole claude-code choice becomes active when nothing else is configured');
 
+const cliStatus = { installed: true, supported: true, version: '1.3.3', authenticated: null, loginCommand: 'agy' };
+const cliModel = { id: 'gemini-3.8-flash-medium', label: 'Gemini Flash', isDefault: true,
+  defaultReasoningEffort: null, supportedReasoningEfforts: [] };
+applyCliAgentStatus('antigravity', cliStatus, cliModel.id, [cliModel]);
+selectAgentModel(`antigravity:${cliModel.id}`);
+applyCliAgentStatus('opencode', { ...cliStatus, loginCommand: 'opencode auth login' }, 'opencode/ling-3.1-flash-free', [
+  { ...cliModel, id: 'opencode/ling-3.1-flash-free' },
+]);
+assert.equal(getAgentModelSnapshot().activeId, `antigravity:${cliModel.id}`, 'background CLI discovery preserves the selected agent');
+assert.equal(getAgentModelSnapshot().choices.find((choice) => choice.backend === 'antigravity')?.provider, 'gemini');
+applyCliAgentStatus('antigravity', { ...cliStatus, installed: false, supported: false });
+assert.equal(getAgentModelSnapshot().choices.some((choice) => choice.backend === 'antigravity'), false, 'removed CLI is not selectable');
+assert.equal(getAgentModelSnapshot().choices.find((choice) => choice.backend === 'opencode')?.model, 'opencode/ling-3.1-flash-free');
 console.log('model-selection.verify: ok');

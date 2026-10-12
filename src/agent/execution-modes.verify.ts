@@ -86,4 +86,25 @@ import { applyAgentModelStatus, applyCodexAgentStatus, selectAgentModel } from '
     await assert.rejects(generateAgentText({ prompt: 'select a highlight', maxOutputTokens: 1000 }), /Codex unavailable/);
   } finally { globalThis.fetch = originalFetch; }
 }
+// CLI text subtasks must stay on the selected CLI, including provider errors.
+{
+  const { applyCliAgentStatus } = await import('./model-selection');
+  for (const backend of ['opencode', 'antigravity'] as const) {
+    const model = backend === 'opencode' ? 'opencode/ling-3.1-flash-free' : 'gemini-3.8-flash-medium';
+    applyCliAgentStatus(backend, { installed: true, supported: true, version: '1.3.3',
+      authenticated: null, loginCommand: '' }, model, [{ id: model, label: model,
+      isDefault: true, defaultReasoningEffort: null, supportedReasoningEfforts: [] }]);
+    selectAgentModel(`${backend}:${model}`);
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input, init) => {
+      assert.equal(String(input), `/api/cli-agents/${backend}/text`, 'CLI subtasks never fall back to an API key');
+      const body = JSON.parse(String(init?.body));
+      assert.equal(body.model, model);
+      return new Response('{"type":"text-delta","delta":"translated"}\n{"type":"done"}\n');
+    }) as typeof fetch;
+    try {
+      assert.equal(await generateAgentText({ prompt: 'translate captions', maxOutputTokens: 100 }), 'translated');
+    } finally { globalThis.fetch = originalFetch; }
+  }
+}
 console.log('execution-modes.verify: ok');

@@ -11,6 +11,8 @@ import { copilotReasoningOptions } from './copilotReasoning';
 import type { CopilotSettingsController } from './useCopilotSettings';
 import type { ClaudeCodeSettingsController } from './useClaudeCodeSettings';
 import { ClaudeCodeVendorPane } from './ClaudeCodeVendorPane';
+import { CliAgentVendorPane } from './CliAgentVendorPane';
+import { discoveredSettingsModels, settingsModelBusy, type CliAgentBackend, type CliAgentSettingsController } from './settingsModelOptions';
 import { FalModelNote } from './FalModelNote';
 import { shouldRenderModelPicker } from './codexReasoning';
 import { llmProviderConfigNames, normalizeLlmProvider } from '../../../shared/llm-providers';
@@ -46,6 +48,7 @@ export interface FieldCtx {
   codex: CodexSettingsController;
   copilot: CopilotSettingsController;
   claudeCode: ClaudeCodeSettingsController;
+  cliAgents: Record<CliAgentBackend, CliAgentSettingsController>;
   /** Re-read /api/keys and push the result to the agent runtime (used by connection-style pages after login/logout). */
   refreshStatus: () => Promise<void>;
   /** Show another settings page, addressed by its vendor key (e.g. 'local/asr'). */
@@ -73,6 +76,11 @@ export function VendorPane({ page, hint, ctx }: {
 }) {
   const t = useT();
   if (page.connection === 'codex') return <CodexVendorPane page={page} hint={hint} ctx={ctx} />;
+  if (page.connection === 'opencode' || page.connection === 'antigravity') return (
+    <CliAgentVendorPane page={page} ctx={ctx}>
+      {page.fields.map((field) => <FieldRow key={field.name} field={field} ctx={ctx} />)}
+    </CliAgentVendorPane>
+  );
   if (page.connection === 'copilot') return (
     <CopilotVendorPane page={page} hint={hint} ctx={ctx} rawOverrides={capabilityOverridesValue(ctx)}
       onOverridesChange={(value) => ctx.onStage(CAPABILITY_OVERRIDE_FIELD, value)}>
@@ -301,13 +309,7 @@ export function FieldRow({ field, ctx }: { field: SettingsField; ctx: FieldCtx }
   const shown = value ?? (isModelField(field) ? modelValue(status, field.name) : '');
   // Select uses the "default" option to clear; toggle's off/on itself is set/clear.
   const clearable = configured && field.kind !== 'select' && field.kind !== 'toggle';
-  const discovered = field.name === 'CODEX_MODEL'
-    ? ctx.codex.models.map((model) => model.id)
-    : field.name === 'COPILOT_MODEL'
-      ? ctx.copilot.models.filter((model) => model.supportsTools).map((model) => model.id)
-      : field.name === 'CLAUDE_CODE_MODEL'
-        ? ctx.claudeCode.models.map((model) => model.id)
-        : field.discoverableModel ? ctx.modelOptions[field.name] ?? [] : [];
+  const discovered = discoveredSettingsModels(field, ctx);
   const options = field.name === 'CODEX_REASONING_EFFORT'
     ? codexReasoningOptions(ctx, (effort) => effort
       ? t('模型默认（{name}）', { name: effort })
@@ -333,9 +335,7 @@ export function FieldRow({ field, ctx }: { field: SettingsField; ctx: FieldCtx }
         ? <ToggleSwitch field={field} shown={shown} onStage={onStage} />
         : shouldRenderModelPicker(field, discovered.length)
           ? <ModelInput field={field} shown={shown} models={discovered} reveal={reveal}
-              loading={(field.name === 'CODEX_MODEL' && ctx.codex.modelBusy)
-                || (field.name === 'COPILOT_MODEL' && ctx.copilot.modelBusy)
-                || (field.name === 'CLAUDE_CODE_MODEL' && ctx.claudeCode.modelBusy)}
+              loading={settingsModelBusy(field, ctx)}
               configured={configured} stagedClear={stagedClear} onStage={onStage} />
           : field.kind === 'select'
           ? <SelectInput field={field} status={status} shown={shown} options={options} onStage={onStage} />

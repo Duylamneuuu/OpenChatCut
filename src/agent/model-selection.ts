@@ -1,6 +1,7 @@
 import type { CodexAgentModel, CodexAgentStatus } from '../../shared/codex-agent';
 import type { CopilotAgentModel, CopilotAgentStatus } from '../../shared/copilot-agent';
 import type { ClaudeCodeAgentModel, ClaudeCodeAgentStatus } from '../../shared/claude-code-agent';
+import { CLI_AGENT_LABELS, cliAgentConfigPrefix, type CliAgentBackend, type CliAgentStatus } from '../../shared/cli-agent';
 import { loadAgentModelPref, saveAgentModelPref } from '../persist/sessionPrefs';
 import {
   LLM_PROVIDER_PRESETS,
@@ -30,7 +31,7 @@ interface KeyStateLike {
 
 export interface AgentModelChoice {
   readonly id: string;
-  readonly backend: 'api' | 'codex' | 'copilot' | 'claude-code';
+  readonly backend: 'api' | 'codex' | 'copilot' | 'claude-code' | 'opencode' | 'antigravity';
   readonly provider: LlmProvider;
   readonly providerLabel: string;
   readonly model: string;
@@ -63,6 +64,8 @@ let copilotDiscoveredModels: readonly CopilotAgentModel[] = [];
 let claudeCodeStatus: ClaudeCodeAgentStatus | null = null;
 let claudeCodeSavedModel = '';
 let claudeCodeDiscoveredModels: readonly ClaudeCodeAgentModel[] = [];
+const cliStates = new Map<CliAgentBackend, { status: CliAgentStatus; models: readonly CodexAgentModel[]; savedModel: string }>();
+let cliModelChoices: readonly AgentModelChoice[] = [];
 const listeners = new Set<() => void>();
 
 function emit(): void {
@@ -134,6 +137,7 @@ function allChoices(): readonly AgentModelChoice[] {
     ...codexModelChoices,
     ...copilotModelChoices,
     ...claudeCodeModelChoices,
+    ...cliModelChoices,
   ];
 }
 function rebuildClaudeCodeChoices(): void {
@@ -247,6 +251,8 @@ export function applyAgentModelStatus(
   copilotSavedModel = models.COPILOT_MODEL?.trim() ?? copilotSavedModel;
   copilotSavedReasoningEffort = models.COPILOT_REASONING_EFFORT?.trim() ?? copilotSavedReasoningEffort;
   claudeCodeSavedModel = models.CLAUDE_CODE_MODEL?.trim() ?? claudeCodeSavedModel;
+  for (const [backend, state] of cliStates) state.savedModel = models[`${cliAgentConfigPrefix(backend)}_MODEL`]?.trim() ?? state.savedModel;
+  rebuildCliChoices();
   rebuildCodexChoices();
   rebuildCopilotChoices();
   rebuildClaudeCodeChoices();
@@ -326,6 +332,29 @@ export function applyClaudeCodeAgentStatus(
   commitChoices(choices, preserved || claudeCodeModelChoices[0]?.id || choices[0]?.id || '', true);
 }
 
+function rebuildCliChoices(): void {
+  cliModelChoices = [...cliStates].flatMap(([backend, state]): AgentModelChoice[] => {
+    if (!state.status.installed || !state.status.supported) return [];
+    const entries = state.models.length ? state.models : state.savedModel ? [{ id: state.savedModel }] : [];
+    return entries.map((entry) => {
+      const provider = copilotProviderForModel(entry.id.split('/').at(-1) || entry.id);
+      return { id: `${backend}:${entry.id}`, backend, provider,
+        providerLabel: CLI_AGENT_LABELS[backend], model: entry.id, requestModel: entry.id,
+        capabilities: modelCapabilities({ backend, provider, modelId: entry.id.split('/').at(-1) || entry.id }) };
+    });
+  });
+}
+export function applyCliAgentStatus(
+  backend: CliAgentBackend, status: CliAgentStatus, savedModel = '', models: readonly CodexAgentModel[] = [],
+): void {
+  cliStates.set(backend, { status, savedModel, models });
+  rebuildCliChoices();
+  const choices = allChoices();
+  const preferred = loadAgentModelPref();
+  const active = choices.some((choice) => choice.id === preferred) ? preferred
+    : choices.some((choice) => choice.id === snapshot.activeId) ? snapshot.activeId : choices[0]?.id || '';
+  commitChoices(choices, active, true);
+}
 export function getAgentModelSnapshot(): AgentModelSnapshot {
   return snapshot;
 }

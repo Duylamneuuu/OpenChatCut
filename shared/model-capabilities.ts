@@ -2,7 +2,7 @@ import modelsDevCatalog from '../assets/model-capabilities/models-dev.json' with
 import { LLM_PROVIDER_PRESETS, type LlmProvider } from './llm-providers.js';
 
 export const MODEL_CAPABILITY_OVERRIDES_KEY = 'AGENT_MODEL_CAPABILITY_OVERRIDES';
-export type ModelBackend = 'api' | 'codex' | 'copilot' | 'claude-code';
+export type ModelBackend = 'api' | 'codex' | 'copilot' | 'claude-code' | 'opencode' | 'antigravity';
 export type ModelCapabilitySource = 'catalog' | 'provider-fallback' | 'settings-override';
 
 export interface ModelIdentity {
@@ -119,7 +119,8 @@ function parseIdentity(value: Record<string, unknown>): ModelIdentity {
   const backend = value.backend;
   const provider = value.provider;
   const modelId = typeof value.modelId === 'string' ? value.modelId.trim() : '';
-  if (backend !== 'api' && backend !== 'codex' && backend !== 'copilot' && backend !== 'claude-code') {
+  if (backend !== 'api' && backend !== 'codex' && backend !== 'copilot' && backend !== 'claude-code'
+    && backend !== 'opencode' && backend !== 'antigravity') {
     throw new Error('Invalid model capability backend.');
   }
   if (typeof provider !== 'string' || !PROVIDERS.has(provider)) throw new Error('Invalid model capability provider.');
