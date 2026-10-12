@@ -290,7 +290,7 @@ function sourceFrameAt(xml: string, name: string, frame: number, fps: number): Q
   assert.equal((xml.match(/<media-rep [^>]*\/>/g) ?? []).length, 2, 'media-rep carries its location only in src');
   assert.deepEqual(fcpxmlDtdViolations(xml), [], 'original/proxy export validates against the FCPXML 1.10 DTD');
   assert.equal(
-    fileURLToPath(mediaRepSrc(xml, 'original-media')!),
+    fileURLToPath(mediaRepSrc(xml, 'original-media')!, { windows: false }),
     originalFilePath,
     'percent-encoded Chinese src decodes back to the exact original path',
   );
@@ -345,7 +345,7 @@ function sourceFrameAt(xml: string, name: string, frame: number, fps: number): Q
     const xml = timelineToFcpxml(state, { mediaDir: '/Users/me/.openchatcut/media' });
     const src = mediaRepSrc(xml, 'original-media');
     assert.equal(src, expected, `${label}: UTF-8 percent-encoded per path segment`);
-    assert.equal(fileURLToPath(src!), originalFilePath, `${label}: src decodes back to the exact on-disk path`);
+    assert.equal(fileURLToPath(src!, { windows: false }), originalFilePath, `${label}: src decodes back to the exact on-disk path`);
     assert.doesNotMatch(src!, /[^\x21-\x7e]/, `${label}: no raw space or non-ASCII byte reaches src`);
     assert.ok(!xml.includes('<pathurl'), `${label}: no <pathurl> element`);
     assert.deepEqual(fcpxmlDtdViolations(xml), [], `${label}: validates against the FCPXML 1.10 DTD`);
@@ -452,7 +452,7 @@ function sourceFrameAt(xml: string, name: string, frame: number, fps: number): Q
   const assetOf = (xml: string, id: string) => xml.match(new RegExp(`<asset id="id-${id}"[\\s\\S]*?</asset>`))?.[0] ?? '';
   const assetStart = (xml: string, id: string) => assetOf(xml, id).match(/<asset [^>]*start="([^"]*)"/)?.[1];
   const repKinds = (xml: string, id: string) => [...assetOf(xml, id).matchAll(/kind="([^"]*)" src="([^"]*)"/g)]
-    .map(([, kind, src]) => `${kind} ${fileURLToPath(src!)}`);
+    .map(([, kind, src]) => `${kind} ${fileURLToPath(src!, { windows: false })}`);
   const timeline = (fps: number, items: TimelineItem[], assets?: TimelineState['assets']): TimelineState => ({
     fps, width: 1920, height: 1080, selectedId: null, items, assets,
     tracks: { V1: { kind: 'video' }, V2: { kind: 'video' }, A1: { kind: 'audio' } }, trackOrder: ['V2', 'V1', 'A1'],

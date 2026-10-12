@@ -8,7 +8,9 @@ import { join } from 'node:path';
 async function main(): Promise<void> {
   const root = mkdtempSync(join(tmpdir(), 'occ-proxy-verify-'));
   const previousHome = process.env.HOME;
+  const previousUserProfile = process.env.USERPROFILE;
   process.env.HOME = root;
+  process.env.USERPROFILE = root;
   const previousEnv: Record<string, string | undefined> = {};
   for (const name of ['HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy']) {
     previousEnv[name] = process.env[name];
@@ -55,6 +57,8 @@ async function main(): Promise<void> {
     }
     if (previousHome === undefined) delete process.env.HOME;
     else process.env.HOME = previousHome;
+    if (previousUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = previousUserProfile;
     rmSync(root, { recursive: true, force: true });
   }
 }

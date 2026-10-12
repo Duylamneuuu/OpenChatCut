@@ -8,6 +8,7 @@ import { join } from 'node:path';
 
 const throwawayHome = mkdtempSync(join(tmpdir(), 'xai-oauth-verify-'));
 process.env.HOME = throwawayHome;
+process.env.USERPROFILE = throwawayHome;
 // Intentionally dynamic: the module resolves its profile paths (HOME-rooted)
 // at import time, so the throwaway HOME must exist before it loads.
 const mod = await import('./xai-oauth-session.ts');

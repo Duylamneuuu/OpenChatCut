@@ -1,21 +1,32 @@
 export { QUICK_EDIT_TOOL_SCHEMAS, QUICK_EDIT_TOOL_NAMES } from './schemas/quick-edit-tools';
 import type { AgentContext } from '../context';
-import { TasteProfile, defaultTasteProfilePath } from '../../color/taste/tasteProfile';
+import { loadTasteProfile } from '../../color/taste/client';
 import { ALL_FX } from '../../gl/fx/effects';
 
 type Args = Record<string, unknown>;
 type StepResult = { step: string; ok: boolean; detail?: unknown; error?: string };
 
-function profile(): TasteProfile {
-  const p = defaultTasteProfilePath();
-  return new TasteProfile(p ?? undefined);
+/** User's most-picked taste, or null when they haven't picked anything yet. */
+async function favoriteGrade(ctx: AgentContext): Promise<string | null> {
+  const top = (await loadTasteProfile()).top(200);
+  return top.find((pick) => ALL_FX[pick.assetId] || ctx.getState().fxDefs?.[pick.assetId])?.assetId ?? null;
 }
 
-/** User's most-picked taste, or null when they haven't picked anything yet. */
-function favoriteGrade(): string | null {
-  const top = profile().top(1);
-  const id = top[0]?.assetId;
-  return id && ALL_FX[id] ? id : null;
+async function transcribeTimeline(ctx: AgentContext): Promise<unknown> {
+  const { execTranscriptTool } = await import('./transcript-tools');
+  const tracks = [...new Set(ctx.getState().items
+    .filter((item) => (item.kind === 'video' || item.kind === 'audio') && item.src)
+    .map((item) => item.track))];
+  if (!tracks.length) return { error: 'no audio/video clips to transcribe' };
+  const results: unknown[] = [];
+  for (const track of tracks) {
+    const result = await execTranscriptTool('transcribe_track', { track }, ctx);
+    results.push(result);
+    if (result && typeof result === 'object' && 'error' in result) {
+      return { error: String(result.error), results };
+    }
+  }
+  return { ok: true, results };
 }
 
 async function runStep(
@@ -31,8 +42,14 @@ async function runStep(
   try {
     const detail = await fn();
     // Unwrap common error shapes from sub-tools
-    if (detail && typeof detail === 'object' && 'error' in (detail as Record<string, unknown>)) {
-      steps.push({ step, ok: false, error: String((detail as Record<string, unknown>).error) });
+    const result = detail && typeof detail === 'object' ? detail as Record<string, unknown> : undefined;
+    if (result && ('error' in result || result.ok === false)) {
+      steps.push({ step, ok: false, detail, error: String(result.error ?? 'step failed') });
+    } else if (step === 'remove_silence' && result
+      && Array.isArray(result.edited) && result.edited.length === 0
+      && (result.skippedReason === 'vad-disabled'
+        || Array.isArray(result.skipped) && result.skipped.length > 0)) {
+      steps.push({ step, ok: false, detail, error: String(result.note ?? 'silence removal skipped clips') });
     } else {
       steps.push({ step, ok: true, detail });
     }
@@ -43,13 +60,12 @@ async function runStep(
 
 async function actionVlog(args: Args, ctx: AgentContext, dryRun: boolean): Promise<unknown> {
   const steps: StepResult[] = [];
-  const { execTranscriptTool } = await import('./transcript-tools');
   const { execSilenceTool } = await import('./silence-tools');
   const { execTasteGradeTool } = await import('./taste-grade-tools');
 
   await runStep(
     'transcribe',
-    () => execTranscriptTool('transcribe_track', {}, ctx),
+    () => transcribeTimeline(ctx),
     steps,
     dryRun,
   );
@@ -61,8 +77,8 @@ async function actionVlog(args: Args, ctx: AgentContext, dryRun: boolean): Promi
   );
 
   const gradeId =
-    (typeof args.grade === 'string' && ALL_FX[args.grade] ? args.grade : null) ??
-    favoriteGrade();
+    (typeof args.grade === 'string' && (ALL_FX[args.grade] || ctx.getState().fxDefs?.[args.grade]) ? args.grade : null) ??
+    await favoriteGrade(ctx);
   if (gradeId) {
     await runStep(
       'taste_grade',
@@ -83,7 +99,7 @@ async function actionVlog(args: Args, ctx: AgentContext, dryRun: boolean): Promi
     ok: failed.length === 0,
     action: 'vlog',
     dryRun,
-    steps: steps.map((s) => ({ step: s.step, ok: s.ok, error: s.error })),
+    steps,
     next: failed.length
       ? 'Some steps failed — fix them individually, then re-run the failed step.'
       : 'Done. Style captions with edit_captions, tweak grade with manage_effects, export with export tools.',
@@ -92,13 +108,12 @@ async function actionVlog(args: Args, ctx: AgentContext, dryRun: boolean): Promi
 
 async function actionShort(args: Args, ctx: AgentContext, dryRun: boolean): Promise<unknown> {
   const steps: StepResult[] = [];
-  const { execTranscriptTool } = await import('./transcript-tools');
   const { execHighlightTool } = await import('./highlight-tool');
   const { execTasteGradeTool } = await import('./taste-grade-tools');
 
   await runStep(
     'transcribe',
-    () => execTranscriptTool('transcribe_track', {}, ctx),
+    () => transcribeTimeline(ctx),
     steps,
     dryRun,
   );
@@ -110,8 +125,8 @@ async function actionShort(args: Args, ctx: AgentContext, dryRun: boolean): Prom
   );
 
   const gradeId =
-    (typeof args.grade === 'string' && ALL_FX[args.grade] ? args.grade : null) ??
-    favoriteGrade();
+    (typeof args.grade === 'string' && (ALL_FX[args.grade] || ctx.getState().fxDefs?.[args.grade]) ? args.grade : null) ??
+    await favoriteGrade(ctx);
   if (gradeId) {
     await runStep(
       'taste_grade',
@@ -128,7 +143,7 @@ async function actionShort(args: Args, ctx: AgentContext, dryRun: boolean): Prom
     ok: failed.length === 0,
     action: 'short',
     dryRun,
-    steps: steps.map((s) => ({ step: s.step, ok: s.ok, error: s.error })),
+    steps,
     next: failed.length
       ? 'Some steps failed.'
       : 'Highlights ready. Reframe vertical with reframe tools if needed, then export.',

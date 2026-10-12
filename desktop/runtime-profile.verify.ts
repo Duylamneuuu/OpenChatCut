@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { join, resolve } from 'node:path';
 import { DEV_PROFILE_ID_ENV, resolveRuntimeProfile } from '../server/runtime-profile.ts';
+import { desktopUserDataDirectory, portableDataDirectory } from './portable-data.ts';
 import {
   requestProfileScopedSingleInstanceLock,
   resolveDesktopUserDataOverride,
@@ -8,6 +9,10 @@ import {
 
 const homeDir = resolve('desktop-runtime-profile-fixtures', 'home');
 const cwd = resolve('desktop-runtime-profile-fixtures', 'checkout');
+assert.equal(portableDataDirectory({ version: 1, dataDirectory: homeDir }), homeDir);
+assert.equal(desktopUserDataDirectory(homeDir), join(homeDir, 'electron-user-data'));
+assert.throws(() => portableDataDirectory({ version: 1, dataDirectory: 'relative' }), /absolute path/);
+assert.throws(() => portableDataDirectory({ version: 2, dataDirectory: homeDir }), /version 1/);
 const profileA = resolveRuntimeProfile({
   [DEV_PROFILE_ID_ENV]: '11111111-1111-4111-8111-111111111111',
 }, { homeDir, cwd });

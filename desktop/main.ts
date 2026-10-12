@@ -394,7 +394,7 @@ async function boot(): Promise<void> {
   const hardware = await detectDesktopHardwareProfile(app);
   const desktopInference = installDesktopInferenceIpc(
     origin,
-    modelCachePath(app.getPath('home')),
+    modelCachePath(app.getPath('home'), runtimeProfile().rootDir),
     hardware,
   );
   app.once('before-quit', () => desktopInference.dispose());

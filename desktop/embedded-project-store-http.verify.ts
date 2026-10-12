@@ -5,11 +5,13 @@ import { join } from 'node:path';
 
 const root = mkdtempSync(join(tmpdir(), 'occ-embedded-project-store-'));
 const previousHome = process.env.HOME;
+const previousUserProfile = process.env.USERPROFILE;
 const previousAppData = process.env.APPDATA;
 const previousLocalAppData = process.env.LOCALAPPDATA;
 const previousDataDir = process.env.OPENCHATCUT_DATA_DIR;
 process.env.OPENCHATCUT_DATA_DIR = join(root, 'store');
 process.env.HOME = root;
+process.env.USERPROFILE = root;
 process.env.APPDATA = root;
 process.env.LOCALAPPDATA = root;
 
@@ -56,18 +58,22 @@ try {
     assert.deepEqual(readBody, { found: true, value: { ready: true } });
   } finally {
     await new Promise<void>((resolve) => embedded.server.close(() => resolve()));
+    const { resetSearchForTests } = await import('../server/storage/fulltext-search.ts');
+    resetSearchForTests();
     resetSqliteStoreForTests();
   }
 } finally {
   if (previousHome === undefined) delete process.env.HOME;
   else process.env.HOME = previousHome;
+  if (previousUserProfile === undefined) delete process.env.USERPROFILE;
+  else process.env.USERPROFILE = previousUserProfile;
   if (previousAppData === undefined) delete process.env.APPDATA;
   else process.env.APPDATA = previousAppData;
   if (previousLocalAppData === undefined) delete process.env.LOCALAPPDATA;
   else process.env.LOCALAPPDATA = previousLocalAppData;
   if (previousDataDir === undefined) delete process.env.OPENCHATCUT_DATA_DIR;
   else process.env.OPENCHATCUT_DATA_DIR = previousDataDir;
-  rmSync(root, { recursive: true, force: true });
+  rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
 }
 
 console.log('embedded-project-store-http.verify: automatic SQLite startup, auth, write, and read passed');

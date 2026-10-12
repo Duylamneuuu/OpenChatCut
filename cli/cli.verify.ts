@@ -336,7 +336,7 @@ try {
   // 16. an installed plugin pack reaches the headless catalog too
   const packId = 'occ-fixture-pack';
   const packVersion = '1.0.0';
-  const packRoot = join(HOME, '.openchatcut', 'plugins');
+  const packRoot = join(LIBRARY, 'plugins');
   const packDir = join(packRoot, packId, Buffer.from(packVersion, 'utf8').toString('base64url'));
   mkdirSync(packDir, { recursive: true });
   const installedAt = Date.now();
@@ -522,5 +522,9 @@ try {
 
   process.stdout.write('occ cli verify: ok\n');
 } finally {
-  rmSync(HOME, { recursive: true, force: true });
+  const { resetSearchForTests } = await import('../server/storage/fulltext-search.ts');
+  const { resetSqliteStoreForTests } = await import('../server/storage/sqlite-store.ts');
+  resetSearchForTests();
+  resetSqliteStoreForTests();
+  rmSync(HOME, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
 }

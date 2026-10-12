@@ -10,6 +10,7 @@ import { dirname, join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { ASR_MODELS, asrModelFile, type AsrModelFile } from '../../shared/asr-models.ts';
 import { modelCachePath } from '../../shared/model-cache-path.ts';
+import { runtimeProfile } from '../runtime-profile.ts';
 import { MODEL_PACKS, type ModelPackFile } from '../../shared/model-packs/catalog.ts';
 import {
   fileMatchesIntegrity,
@@ -101,7 +102,7 @@ export function __getAbsentSourcesForVerify(): ReadonlyMap<string, readonly stri
 
 /** Shared user-data cache; never exposed through public/ or bundled into dist. */
 export function modelCacheDir(): string {
-  return modelCachePath(homedir());
+  return modelCachePath(homedir(), runtimeProfile().rootDir);
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {

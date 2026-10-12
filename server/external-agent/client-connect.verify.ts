@@ -5,6 +5,7 @@
 // HOME; the Windows cases record commands through an injected runner, so no
 // PowerShell, registry or real Codex CLI is ever touched.
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, writeFile, chmod, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -13,6 +14,17 @@ import { connectExternalClient, type ConnectCommand, type ConnectCommandRunner }
 const ENDPOINT = 'http://localhost:5199/api/external-mcp/mcp';
 const TOKEN = 'tok_AbC123-_xyz';
 const CODEX_ARGS = ['mcp', 'add', 'openchatcut', '--url', ENDPOINT, '--bearer-token-env-var', 'OPENCHATCUT_MCP_TOKEN'];
+
+// Run the fixture CLI with Node on every host, without depending on a Unix shell.
+const runNodeStub: ConnectCommandRunner = (command) => new Promise((resolve, reject) => {
+  const child = spawn(process.execPath, [command.executable, ...command.args], {
+    env: command.env, stdio: ['ignore', 'ignore', 'pipe'],
+  });
+  let stderr = '';
+  child.stderr.on('data', (chunk) => { stderr += String(chunk); });
+  child.once('error', reject);
+  child.once('close', (code) => resolve({ code, stderr }));
+});
 
 /** Records every command; `reply` decides each exit code (default: success). */
 function recordingRunner(
@@ -109,10 +121,11 @@ async function main(): Promise<void> {
     const stubDir = path.join(home, 'bin');
     await mkdir(stubDir, { recursive: true });
     await mkdir(path.join(home, '.codex'), { recursive: true });
-    const stub = path.join(stubDir, 'codex-stub');
-    await writeFile(stub, '#!/bin/sh\necho "$@" >> "$CODEX_HOME/stub-args"\nexit 0\n');
+    const stub = path.join(stubDir, 'codex-stub.mjs');
+    await writeFile(stub, "import { appendFileSync } from 'node:fs'; import { join } from 'node:path'; appendFileSync(join(process.env.CODEX_HOME, 'stub-args'), process.argv.slice(2).join(' ') + '\\n');\n");
     await chmod(stub, 0o755);
-    const codex = await connectExternalClient('codex', ENDPOINT, TOKEN, { baseDir: home, codexBin: stub });
+    const stubOptions = { baseDir: home, codexBin: stub, platform: 'linux' as const, runCommand: runNodeStub };
+    const codex = await connectExternalClient('codex', ENDPOINT, TOKEN, stubOptions);
     assert.equal(codex.ok, true);
     if (codex.ok) assert.deepEqual(codex.paths, ['~/.codex/config.toml', '~/.zshrc']);
     const stubArgs = (await readFile(path.join(home, '.codex/stub-args'), 'utf8')).trim();
@@ -122,17 +135,17 @@ async function main(): Promise<void> {
     );
     const zshrcFirst = await readFile(path.join(home, '.zshrc'), 'utf8');
     assert.match(zshrcFirst, /# OpenChatCut MCP token \(added by OpenChatCut\)\nexport OPENCHATCUT_MCP_TOKEN='tok_AbC123-_xyz'\n$/);
-    const rotated = await connectExternalClient('codex', ENDPOINT, 'tok_NEW456', { baseDir: home, codexBin: stub });
+    const rotated = await connectExternalClient('codex', ENDPOINT, 'tok_NEW456', stubOptions);
     assert.equal(rotated.ok, true);
     const zshrcSecond = await readFile(path.join(home, '.zshrc'), 'utf8');
     assert.match(zshrcSecond, /export OPENCHATCUT_MCP_TOKEN='tok_NEW456'/);
     assert.equal((zshrcSecond.match(/OPENCHATCUT_MCP_TOKEN=/g) ?? []).length, 1, 'no duplicate export');
 
     // 8. Codex CLI failure surfaces as codex-cli-failed.
-    const failStub = path.join(stubDir, 'codex-fail');
-    await writeFile(failStub, '#!/bin/sh\necho boom >&2\nexit 3\n');
+    const failStub = path.join(stubDir, 'codex-fail.mjs');
+    await writeFile(failStub, "process.stderr.write('boom\\n'); process.exit(3);\n");
     await chmod(failStub, 0o755);
-    const codexFail = await connectExternalClient('codex', ENDPOINT, TOKEN, { baseDir: home, codexBin: failStub });
+    const codexFail = await connectExternalClient('codex', ENDPOINT, TOKEN, { ...stubOptions, codexBin: failStub });
     assert.equal(codexFail.ok, false);
     if (!codexFail.ok) {
       assert.equal(codexFail.error, 'codex-cli-failed');

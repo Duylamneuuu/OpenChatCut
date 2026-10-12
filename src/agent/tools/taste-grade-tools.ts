@@ -1,14 +1,11 @@
 export { TASTE_GRADE_TOOL_SCHEMAS, TASTE_GRADE_TOOL_NAMES } from './schemas/taste-grade-tools';
 import type { AgentContext } from '../context';
 import type { ClipEffect, TimelineItem } from '../../editor/types';
-import { ALL_FX, serializableDefsFor } from '../../gl/fx/effects';
+import { ALL_FX, LUT_FRAG, registerCustomFx, serializableDefsFor } from '../../gl/fx/effects';
 import {
-  bakeCubeText,
-  makeTransferParams,
   parseLabStats,
-  type LabStats,
 } from '../../color/taste/colorTransfer';
-import { TasteProfile, defaultTasteProfilePath } from '../../color/taste/tasteProfile';
+import { createTasteLut, loadTasteProfile, recordTastePick } from '../../color/taste/client';
 
 type Args = Record<string, unknown>;
 
@@ -22,11 +19,6 @@ function lutLikeIds(): string[] {
       id.startsWith('taste:') ||
       (ALL_FX[id]?.cube != null),
   );
-}
-
-function profile(): TasteProfile {
-  const p = defaultTasteProfilePath();
-  return new TasteProfile(p ?? undefined);
 }
 
 function parseItemRefs(raw: unknown): string[] {
@@ -67,7 +59,7 @@ async function actionSuggest(args: Args) {
   const mood = String(args.mood ?? '');
   const limit = Math.min(12, Math.max(1, Number(args.limit ?? 6) || 6));
   const candidates = lutLikeIds();
-  const ranked = profile().rank(candidates, mood || undefined).slice(0, limit);
+  const ranked = (await loadTasteProfile()).rank(candidates, mood || undefined).slice(0, limit);
   return {
     ok: true,
     action: 'suggest',
@@ -87,8 +79,8 @@ async function actionRecordPick(args: Args) {
   if (!assetId || !d) {
     return { error: `unknown asset ${assetId || '(missing)'}`, available: lutLikeIds().slice(0, 20) };
   }
-  profile().record(assetId, d.name, typeof args.mood === 'string' ? args.mood : undefined);
-  return { ok: true, action: 'record_pick', assetId, name: d.name, top: profile().top(5) };
+  const profile = await recordTastePick(assetId, d.name, typeof args.mood === 'string' ? args.mood : undefined);
+  return { ok: true, action: 'record_pick', assetId, name: d.name, top: profile.top(5) };
 }
 
 async function actionFromReference(args: Args, ctx: AgentContext) {
@@ -108,35 +100,23 @@ async function actionFromReference(args: Args, ctx: AgentContext) {
 
   // Source stats: use a neutral mid-gray-ish source so the transfer is driven
   // by the reference. (Per-clip source analysis can refine this later.)
-  const srcStats: LabStats = { mean: [50, 0, 0], std: [22, 14, 14] };
-  const strength = Math.min(1, Math.max(0.1, Number(args.strength ?? 0.85) || 0.85));
-  const params = makeTransferParams(srcStats, refStats, strength);
-  const id = `taste-${Date.now().toString(36)}`;
+  const rawStrength = Number(args.strength ?? 0.85);
+  const strength = Number.isFinite(rawStrength) ? Math.min(1, Math.max(0, rawStrength)) : 0.85;
   const lutName = String(args.lutName ?? 'Taste grade').slice(0, 60);
-  const cubeText = bakeCubeText(params, 33, lutName);
-
-  // Persist the .cube where the renderer can fetch it (/media/uploads/…).
-  const fileName = `${id}.cube`;
+  let assetId: string;
+  let cubeUrl: string;
   try {
-    const { uploadDir } = await import('../../../server/media-dir');
-    const { writeFile, mkdir } = await import('node:fs/promises');
-    const { join } = await import('node:path');
-    const dir = uploadDir();
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, fileName), cubeText, 'utf8');
+    ({ assetId, cubeUrl } = await createTasteLut(refStats, strength, lutName));
   } catch (e) {
     return { error: `could not persist LUT: ${e instanceof Error ? e.message : String(e)}` };
   }
 
-  const cubeUrl = `/media/uploads/${fileName}`;
   try {
-    const { registerCustomFx } = await import('../../gl/fx/effects');
-    const lutFrag = (await import('../../gl/fx/lut.frag.ts')).default as string;
     registerCustomFx({
-      id: `taste:${id}`,
+      id: assetId,
       name: lutName,
       desc: `AI taste grade baked from a reference image (strength ${strength}).`,
-      frag: lutFrag,
+      frag: LUT_FRAG,
       cube: cubeUrl,
       props: [{ key: 'intensity', label: 'Intensity', default: 0.85, min: 0, max: 1, step: 0.01 }],
     });
@@ -144,7 +124,6 @@ async function actionFromReference(args: Args, ctx: AgentContext) {
     return { error: `LUT baked to ${cubeUrl} but registration failed: ${e instanceof Error ? e.message : String(e)}` };
   }
 
-  const assetId = `taste:${id}`;
   // Apply to targets right away (one undo step per clip, like manage_effects).
   const applied: string[] = [];
   for (const it of targets) {
@@ -156,7 +135,7 @@ async function actionFromReference(args: Args, ctx: AgentContext) {
     ctx.commands.setItemEffects(it.id, [...(it.effects ?? []), effect], serializableDefsFor([effect]));
     applied.push(it.id);
   }
-  profile().record(assetId, lutName);
+  await recordTastePick(assetId, lutName);
   return {
     ok: true,
     action: 'from_reference',
@@ -171,10 +150,13 @@ async function actionFromReference(args: Args, ctx: AgentContext) {
 
 async function actionPerSegment(args: Args, ctx: AgentContext) {
   const assetId = String(args.assetId ?? '');
+  const savedDef = ctx.getState().fxDefs?.[assetId];
+  if (savedDef && !ALL_FX[assetId]) registerCustomFx(savedDef);
   if (!assetId || !ALL_FX[assetId]) {
     return { error: `unknown asset ${assetId || '(missing assetId)'}`, available: lutLikeIds().slice(0, 20) };
   }
-  const intensity = Math.min(1, Math.max(0, Number(args.intensity ?? 0.85) || 0.85));
+  const rawIntensity = Number(args.intensity ?? 0.85);
+  const intensity = Number.isFinite(rawIntensity) ? Math.min(1, Math.max(0, rawIntensity)) : 0.85;
   const state = ctx.getState();
   const { targets, missing } = resolveTargets(state.items, parseItemRefs(args.itemIds));
   if (!targets.length) {
@@ -192,7 +174,7 @@ async function actionPerSegment(args: Args, ctx: AgentContext) {
     ctx.commands.setItemEffects(it.id, [...(it.effects ?? []), effect], serializableDefsFor([effect]));
     applied.push(it.id);
   }
-  profile().record(assetId, ALL_FX[assetId]!.name);
+  await recordTastePick(assetId, ALL_FX[assetId]!.name);
   return {
     ok: true,
     action: 'per_segment',

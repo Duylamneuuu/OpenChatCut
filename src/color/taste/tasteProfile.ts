@@ -1,5 +1,5 @@
 // Taste profile: learns which looks/LUTs the user picks so suggestions get
-// personal over time. File-backed (graceful in-memory fallback), node-safe.
+// personal over time. Pure data model; persistence belongs to the local server.
 
 export interface TastePick {
   assetId: string;
@@ -73,41 +73,14 @@ const MAX_PICKS = 200;
 
 export class TasteProfile {
   private data: TasteProfileData = { version: 1, picks: [] };
-  private filePath: string | null = null;
 
-  constructor(filePath?: string) {
-    if (filePath) {
-      this.filePath = filePath;
-      this.load();
-    }
-  }
-
-  private load(): void {
-    if (!this.filePath) return;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const fs = require('node:fs') as typeof import('node:fs');
-      const raw = fs.readFileSync(this.filePath, 'utf8');
-      const parsed = JSON.parse(raw) as TasteProfileData;
-      if (parsed && parsed.version === 1 && Array.isArray(parsed.picks)) {
-        this.data = { version: 1, picks: parsed.picks.slice(-MAX_PICKS) };
-      }
-    } catch {
-      /* missing/corrupt → start fresh */
-    }
-  }
-
-  private save(): void {
-    if (!this.filePath) return;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const fs = require('node:fs') as typeof import('node:fs');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const path = require('node:path') as typeof import('node:path');
-      fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
-      fs.writeFileSync(this.filePath, JSON.stringify(this.data), 'utf8');
-    } catch {
-      /* best effort */
+  constructor(initial?: TasteProfileData) {
+    if (initial?.version === 1 && Array.isArray(initial.picks)) {
+      this.data.picks = initial.picks.filter((pick) =>
+        pick && typeof pick.assetId === 'string' && typeof pick.name === 'string'
+        && Number.isFinite(pick.at)
+        && (pick.mood === undefined || typeof pick.mood === 'string'),
+      ).slice(-MAX_PICKS).map((pick) => ({ ...pick }));
     }
   }
 
@@ -116,7 +89,6 @@ export class TasteProfile {
     if (this.data.picks.length > MAX_PICKS) {
       this.data.picks = this.data.picks.slice(-MAX_PICKS);
     }
-    this.save();
   }
 
   /** Frequency of each assetId (recent picks weigh more). */
@@ -160,19 +132,6 @@ export class TasteProfile {
   }
 
   toJSON(): TasteProfileData {
-    return this.data;
-  }
-}
-
-/** Default profile location next to other OpenChatCut user data. */
-export function defaultTasteProfilePath(): string | null {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const os = require('node:os') as typeof import('node:os');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require('node:path') as typeof import('node:path');
-    return path.join(os.homedir(), '.openchatcut', 'taste-profile.json');
-  } catch {
-    return null;
+    return { version: 1, picks: this.data.picks.map((pick) => ({ ...pick })) };
   }
 }

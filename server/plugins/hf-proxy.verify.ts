@@ -5,7 +5,16 @@ import { mkdtemp, readFile, rm, stat, utimes, writeFile } from 'node:fs/promises
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ASR_MODELS } from '../../shared/asr-models';
-import {
+import type { PartStreamFactory, ProxyTarget } from './hf-proxy';
+import { openVerifiedFile } from './hf-integrity';
+
+const directory = await mkdtemp(join(tmpdir(), 'openchatcut-hf-proxy-'));
+const originalHome = process.env.HOME;
+const originalUserProfile = process.env.USERPROFILE;
+process.env.HOME = directory;
+process.env.USERPROFILE = directory;
+// Runtime paths are captured at import time, after the verifier home is isolated.
+const {
   downloadModelFile,
   handleHfProxyRequest,
   mergeDownloadedParts,
@@ -15,10 +24,7 @@ import {
   sourceMissingOnError,
   __getAbsentSourcesForVerify,
   __resetModelMissingState,
-  type PartStreamFactory,
-  type ProxyTarget,
-} from './hf-proxy';
-import { openVerifiedFile } from './hf-integrity';
+} = await import('./hf-proxy');
 
 const RHYTHM_REVISION = '4e971bd43753023e1bf961c34a0cb74985cfcb88';
 const CLAP_REVISION = 'c28f2883575e590e04d3146ff0713c2448d691ba';
@@ -71,7 +77,6 @@ const rejectedPaths = [
 ];
 for (const path of rejectedPaths) assert.equal(parseTarget(path), null, path);
 
-const directory = await mkdtemp(join(tmpdir(), 'openchatcut-hf-proxy-'));
 const destination = join(directory, 'merged.bin');
 const chunks: Record<string, readonly Buffer[]> = {
   first: [Buffer.from('one'), Buffer.from('-')],
@@ -141,6 +146,8 @@ assert.equal(await downloadModelFile(downloadTarget, cachedDownload, {
   expectedSha256: fixtureIntegrity.sha256,
 }), cachedDownload);
 await writeFile(cachedDownload, corruptFixture);
+// Windows can retain the previous timestamp for two immediate writes.
+await utimes(cachedDownload, new Date(), new Date(Date.now() + 2000));
 const aborted = new AbortController();
 aborted.abort(new Error('do not access the network'));
 await assert.rejects(
@@ -193,11 +200,6 @@ if (!process.env.HF_PROXY_SKIP_INTEGRATION) {
   }
 }
 
-const originalHome = process.env.HOME;
-const originalUserProfile = process.env.USERPROFILE;
-// os.homedir() resolves USERPROFILE on Windows; HOME alone only covers POSIX.
-process.env.HOME = directory;
-process.env.USERPROFILE = directory;
 assert.equal(modelCacheDir(), join(directory, '.openchatcut', 'asr-models'));
 const resolveInstalled = async (target: ProxyTarget) => {
   if (target.modelId !== asrTarget.modelId

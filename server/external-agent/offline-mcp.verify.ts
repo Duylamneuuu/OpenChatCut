@@ -55,7 +55,9 @@ function sessionId(result: CallToolResult): string {
 
 const root = await mkdtemp(join(tmpdir(), 'occ-offline-mcp-'));
 const previousHome = process.env.HOME;
+const previousUserProfile = process.env.USERPROFILE;
 process.env.HOME = root;
+process.env.USERPROFILE = root;
 
 // The store captures HOME at module evaluation; delay these known modules so this
 // verification can never touch the user's real project data.
@@ -180,8 +182,14 @@ try {
   resetExternalAgentBrokerForTest();
   await new Promise<void>((resolve) => server.close(() => resolve()));
   await getStoredEntry('projects');
+  const { resetSearchForTests } = await import('../storage/fulltext-search.ts');
+  const { resetSqliteStoreForTests } = await import('../storage/sqlite-store.ts');
+  resetSearchForTests();
+  resetSqliteStoreForTests();
   if (previousHome === undefined) delete process.env.HOME;
   else process.env.HOME = previousHome;
+  if (previousUserProfile === undefined) delete process.env.USERPROFILE;
+  else process.env.USERPROFILE = previousUserProfile;
   await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 10 });
 }
 

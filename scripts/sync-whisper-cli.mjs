@@ -74,17 +74,19 @@ async function fetchArchive(url) {
   return new Uint8Array(await response.arrayBuffer());
 }
 
+export function archiveExtractionCommand(archive, outDir, platform = process.platform) {
+  if (archive.endsWith('.zip') && platform !== 'win32') return ['unzip', ['-q', archive, '-d', outDir]];
+  return ['tar', [archive.endsWith('.zip') ? '-xf' : '-xzf', archive, '-C', outDir]];
+}
+
 async function extractArchive(archive, outDir) {
   await rm(outDir, { recursive: true, force: true });
   await mkdir(outDir, { recursive: true });
   const { execFile } = await import('node:child_process');
   const { promisify } = await import('node:util');
   const run = promisify(execFile);
-  if (archive.endsWith('.zip')) {
-    await run('unzip', ['-q', archive, '-d', outDir]);
-  } else {
-    await run('tar', ['-xzf', archive, '-C', outDir]);
-  }
+  const [command, args] = archiveExtractionCommand(archive, outDir);
+  await run(command, args);
 }
 
 function sha256Of(buffer) {

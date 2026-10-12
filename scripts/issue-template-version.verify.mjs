@@ -15,7 +15,7 @@ const FORMS = [
 
 /** Options of the `id: version` dropdown, in form order (the forms are flat YAML lists). */
 function versionOptions(path) {
-  const lines = readFileSync(new URL(path, root), 'utf8').split('\n');
+  const lines = readFileSync(new URL(path, root), 'utf8').split(/\r?\n/);
   const field = lines.findIndex((line) => line.trim() === 'id: version');
   assert.ok(field >= 0, `${path} has a version field`);
   const list = lines.findIndex((line, index) => index > field && line.trim() === 'options:');

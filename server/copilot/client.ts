@@ -1,15 +1,15 @@
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { CopilotClient, RuntimeConnection, type ModelInfo } from '@github/copilot-sdk';
 import type { CopilotAccountSummary, CopilotAgentModel } from '../../shared/copilot-agent.ts';
 import { resolveCopilotCli } from './installation.ts';
+import { runtimeProfile } from '../runtime-profile.ts';
 
 /**
  * Isolated Copilot home, mirroring `CODEX_HOME = ~/.openchatcut/codex`. Keeps
  * OpenChatCut's session state, config and logs out of the user's own
  * `~/.copilot` so an in-app run can never disturb their terminal CLI.
  */
-const COPILOT_HOME = join(homedir(), '.openchatcut', 'copilot');
+const COPILOT_HOME = join(runtimeProfile().rootDir, 'copilot');
 const RUNTIME_REQUEST_TIMEOUT_MS = 15_000;
 const MODEL_CACHE_TTL_MS = 5 * 60_000;
 

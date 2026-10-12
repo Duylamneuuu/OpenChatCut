@@ -5,11 +5,12 @@ import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { CodexLoginMode } from '../../shared/codex-agent.ts';
 import { codexCommand } from './command.ts';
+import { runtimeProfile } from '../runtime-profile.ts';
 
 const INITIALIZE_TIMEOUT_MS = 10_000;
 const MAX_REQUEST_TIMEOUT_MS = 60_000;
 const MAX_PROTOCOL_LINE_BYTES = 8 * 1024 * 1024;
-const CODEX_HOME = join(homedir(), '.openchatcut', 'codex');
+const CODEX_HOME = join(runtimeProfile().rootDir, 'codex');
 /** System Codex home that OpenChatCut's isolated CODEX_HOME inherits credentials from. */
 const SYSTEM_CODEX_HOME = join(homedir(), '.codex');
 export const CODEX_DISABLED_FEATURES = [

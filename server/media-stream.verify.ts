@@ -1,6 +1,6 @@
 // Run: npx tsx server/media-stream.verify.ts
 import assert from 'node:assert/strict';
-import { once } from 'node:events';
+import { EventEmitter, once } from 'node:events';
 import { unlinkSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createServer, get, type ServerResponse } from 'node:http';
@@ -12,7 +12,11 @@ import { serveDiskFile } from './media-dir.ts';
 
 const root = await mkdtemp(join(tmpdir(), 'occ-media-stream-check-'));
 const errors: NodeJS.ErrnoException[] = [];
-const app = createMiniConnect((error) => errors.push(error as NodeJS.ErrnoException));
+const handledErrors = new EventEmitter();
+const app = createMiniConnect((error) => {
+  errors.push(error as NodeJS.ErrnoException);
+  handledErrors.emit('reported');
+});
 const content = '0123456789';
 let cancelDone: Promise<unknown> | undefined;
 
@@ -84,6 +88,7 @@ try {
   for (const path of ['/race.mp4', '/race.js']) {
     await assert.rejects(async () => { await (await fetch(origin + path)).text(); });
   }
+  while (errors.length < 2) await once(handledErrors, 'reported', { signal: AbortSignal.timeout(3000) });
   assert.deepEqual(errors.map((error) => error.code), ['ENOENT', 'ENOENT'], 'async source errors reach existing middleware catch');
   await new Promise<void>((resolve, reject) => {
     get(`${origin}/cancel.mp4`, (res) => {

@@ -26,6 +26,7 @@ import { transcriptionPlugin } from "./transcription.ts";
 import { extractFramesPlugin } from "./extract-frames.ts";
 import { sceneDetectionPlugin } from "./scene-detection.ts";
 import { autoGradePlugin } from "./auto-grade.ts";
+import { tasteGradePlugin } from './taste-grade.ts';
 import { mediaPreviewPlugin } from "./media-preview.ts";
 import { isolateVoicePlugin } from "./isolate-voice.ts";
 import { normalizeMediaPlugin } from "./normalize-media.ts";
@@ -102,6 +103,7 @@ export function serverPlugins(options: { projectStoreHttp?: boolean } = {}): Plu
     extractFramesPlugin(),
     sceneDetectionPlugin(),
     autoGradePlugin(),
+    tasteGradePlugin(),
     mediaPreviewPlugin(),
     isolateVoicePlugin(),
     normalizeMediaPlugin(),

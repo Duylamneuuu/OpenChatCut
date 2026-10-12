@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { runtimeProfile } from '../runtime-profile.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 
-const DEFAULT_ROOT_DIR = join(homedir(), '.openchatcut', 'plugins');
+const DEFAULT_ROOT_DIR = join(runtimeProfile().rootDir, 'plugins');
 const FORMAT = 'openchatcut-plugin@1';
 const ID_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
 const MAX_BODY_BYTES = 64 * 1024 * 1024;

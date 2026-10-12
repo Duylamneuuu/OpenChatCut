@@ -31,6 +31,7 @@ export async function execSilenceTool(name: string, args: Args, ctx: AgentContex
     return {
       ok: true,
       edited: [],
+      skippedReason: 'vad-disabled',
       note: 'VAD 静音删除未启用（设置 → 本地模型 → 本地转写 → 删除静音（本地 VAD））；为避免把音乐、噪声或低声讲话当静音，未执行删除。请告知用户在该开关启用后重试。',
     };
   }

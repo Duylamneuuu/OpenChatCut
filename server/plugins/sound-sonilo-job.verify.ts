@@ -105,6 +105,10 @@ try {
   // it (ENOTEMPTY under the parallel suite).
   const { persistJobs } = await import('./generation-job-store.ts');
   await persistJobs().catch(() => undefined);
+  const { resetSearchForTests } = await import('../storage/fulltext-search.ts');
+  const { resetSqliteStoreForTests } = await import('../storage/sqlite-store.ts');
+  resetSearchForTests();
+  resetSqliteStoreForTests();
   await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   process.env = oldEnv;
 }

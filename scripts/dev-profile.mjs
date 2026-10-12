@@ -104,13 +104,12 @@ async function ensurePrivateDirectory(directory) {
   await chmod(directory, 0o700).catch(() => undefined);
 }
 
-async function ensureProfileDirectories(homeDir, profileId) {
+async function ensureProfileDirectories(homeDir, profileId, dataDir) {
   const appRoot = join(homeDir, '.openchatcut');
   const profilesRoot = join(appRoot, 'dev-profiles');
-  const rootDir = join(profilesRoot, profileId);
+  const rootDir = dataDir ?? join(profilesRoot, profileId);
   const directories = [
-    appRoot,
-    profilesRoot,
+    ...(dataDir ? [] : [appRoot, profilesRoot]),
     rootDir,
     join(rootDir, 'electron-user-data'),
     join(rootDir, 'project-store-auth-v1'),
@@ -132,9 +131,12 @@ function assertMetadataRepo(metadata, repoRoot, metadataPath) {
 }
 
 export async function loadOrCreateDevProfile(options) {
-  const { gitDir, repoRoot, homeDir, randomId = randomUUID } = options;
+  const { gitDir, repoRoot, homeDir, dataDir, randomId = randomUUID } = options;
   if (!isAbsolute(gitDir) || !isAbsolute(repoRoot) || !isAbsolute(homeDir)) {
     throw new Error('Isolated development profile paths must be absolute');
+  }
+  if (dataDir !== undefined && !isAbsolute(dataDir)) {
+    throw new Error('OPENCHATCUT_DATA_DIR must be an absolute path');
   }
   const metadataPath = join(gitDir, DEV_PROFILE_METADATA);
   let metadata = await readMetadata(metadataPath);
@@ -144,7 +146,7 @@ export async function loadOrCreateDevProfile(options) {
   }
   assertMetadataRepo(metadata, repoRoot, metadataPath);
   await chmod(metadataPath, 0o600).catch(() => undefined);
-  const rootDir = await ensureProfileDirectories(homeDir, metadata.profileId);
+  const rootDir = await ensureProfileDirectories(homeDir, metadata.profileId, dataDir);
   return Object.freeze({
     id: metadata.profileId,
     rootDir,
@@ -217,7 +219,11 @@ export async function profileChildEnvironment(
   ensureBrowserImpl,
 ) {
   const saved = await readProfileEnv(profile.keystorePath);
-  const environment = { ...baseEnvironment, ...saved, [DEV_PROFILE_ID_ENV]: profile.id };
+  const environment = {
+    ...baseEnvironment, ...saved,
+    [DEV_PROFILE_ID_ENV]: profile.id,
+    OPENCHATCUT_DATA_DIR: profile.rootDir,
+  };
   if (!environment.CC_BROWSER_EXECUTABLE) {
     const shellPath = await resolveDevHeadlessShell(environment, ensureBrowserImpl);
     if (shellPath) environment.CC_BROWSER_EXECUTABLE = shellPath;
@@ -245,9 +251,11 @@ async function gitPath(cwd, argument, label) {
 export async function resolveDevProfile(options = {}) {
   const cwd = options.cwd ?? process.cwd();
   const homeDir = options.homeDir ?? homedir();
+  const rawDataDir = options.dataDir ?? process.env.OPENCHATCUT_DATA_DIR?.trim();
+  const dataDir = rawDataDir ? rawDataDir.replace(/^~(?=\/|$)/, homeDir) : undefined;
   const gitDir = await gitPath(cwd, '--absolute-git-dir', 'absolute git directory');
   const repoRoot = await gitPath(cwd, '--show-toplevel', 'repository root');
-  return loadOrCreateDevProfile({ gitDir, repoRoot, homeDir });
+  return loadOrCreateDevProfile({ gitDir, repoRoot, homeDir, dataDir });
 }
 
 async function runProfileCommand(profile, command, args) {

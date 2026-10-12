@@ -63,6 +63,18 @@ try {
   assert.equal(childEnvironment.ASSEMBLYAI_API_KEY, '',
     'an isolated empty-value tombstone must suppress an inherited checkout secret');
   assert.equal(childEnvironment.OPENCHATCUT_DEV_PROFILE_ID, UUID_A);
+  assert.equal(childEnvironment.OPENCHATCUT_DATA_DIR, first.rootDir);
+
+  const redirectedPaths = await fixturePaths('redirected');
+  const dataDir = join(fixture, 'external-data');
+  const redirected = await loadOrCreateDevProfile({ ...redirectedPaths, dataDir, randomId: () => UUID_A });
+  assert.equal(redirected.rootDir, dataDir);
+  assert.equal(redirected.keystorePath, join(dataDir, 'settings.env'));
+  await assert.rejects(stat(join(redirectedPaths.homeDir, '.openchatcut')), { code: 'ENOENT' });
+  await assert.rejects(
+    loadOrCreateDevProfile({ ...redirectedPaths, dataDir: 'relative/path', randomId: () => UUID_A }),
+    /must be an absolute path/,
+  );
 
   const shellExecutable = join(fixture, 'headless-shell');
   await writeFile(shellExecutable, 'test shell', { mode: 0o755 });

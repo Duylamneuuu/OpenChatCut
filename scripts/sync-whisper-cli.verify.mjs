@@ -14,6 +14,7 @@ import { createHash } from 'node:crypto';
 import {
   adoptable,
   archiveProblem,
+  archiveExtractionCommand,
   findExecutable,
   flattenExecutableDir,
   helpProbeProblem,
@@ -34,6 +35,9 @@ const tree = async (root, files) => {
 };
 
 try {
+  assert.deepEqual(archiveExtractionCommand('input.zip', 'target', 'win32'), ['tar', ['-xf', 'input.zip', '-C', 'target']]);
+  assert.deepEqual(archiveExtractionCommand('input.zip', 'target', 'darwin'), ['unzip', ['-q', 'input.zip', '-d', 'target']]);
+  assert.deepEqual(archiveExtractionCommand('input.tar.gz', 'target', 'linux'), ['tar', ['-xzf', 'input.tar.gz', '-C', 'target']]);
   // ── the real Windows layout: whisper-bin-x64.zip nests under Release/ ──────
   {
     const target = await mkdtemp(join(scratch, 'win-'));
