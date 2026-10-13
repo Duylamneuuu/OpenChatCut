@@ -49,7 +49,7 @@ export class DesktopUpdateService {
     this.updater.autoDownload = false;
     this.updater.autoInstallOnAppQuit = false;
     this.updater.allowDowngrade = false;
-    this.updater.allowPrerelease = false;
+    this.updater.allowPrerelease = /-custom(?:\.|$)/.test(this.options.currentVersion);
     this.updater.on('checking-for-update', () => {
       this.publish({ ...this.state, phase: 'checking' });
     });

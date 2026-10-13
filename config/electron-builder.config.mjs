@@ -62,7 +62,7 @@ const keepSqliteVec = TARGET_SQLITE_VEC_PACKAGE[target];
 const sqliteVecFilters = SQLITE_VEC_PACKAGES
   .filter((packageSuffix) => packageSuffix !== keepSqliteVec)
   .map((packageSuffix) => `!node_modules/sqlite-vec-${packageSuffix}/**`);
-const updateChannel = target.includes('arm64') ? 'latest-arm64' : 'latest-x64';
+const updateChannel = target.includes('arm64') ? 'custom-arm64' : 'custom';
 const hasMacSigningCertificate = Boolean(process.env.CSC_LINK || process.env.CSC_NAME);
 
 export default {
@@ -77,7 +77,7 @@ export default {
   compression: 'maximum',
   publish: [{
     provider: 'github',
-    owner: '0xsline',
+    owner: 'Duylamneuuu',
     repo: 'OpenChatCut',
     channel: updateChannel,
   }],

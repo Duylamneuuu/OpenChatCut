@@ -3,8 +3,9 @@ import type {
   DesktopUpdateState,
 } from '../../shared/desktop-update';
 
-export const UPSTREAM_LATEST_RELEASE_URL = 'https://api.github.com/repos/0xsline/OpenChatCut/releases/latest';
-export const UPSTREAM_RELEASES_URL = 'https://github.com/0xsline/OpenChatCut/releases/latest';
+export const UPSTREAM_LATEST_RELEASE_URL = 'https://api.github.com/repos/Duylamneuuu/OpenChatCut/releases/latest';
+export const CUSTOM_RELEASES_API_URL = 'https://api.github.com/repos/Duylamneuuu/OpenChatCut/releases?per_page=20';
+export const UPSTREAM_RELEASES_URL = 'https://github.com/Duylamneuuu/OpenChatCut/releases';
 
 export const CURRENT_APP_VERSION =
   typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
@@ -105,9 +106,21 @@ export async function queryLatestUpstreamRelease(
   fetcher: Fetcher = fetch,
   signal?: AbortSignal,
 ): Promise<UpstreamReleaseResult> {
-  const response = await fetcher(UPSTREAM_LATEST_RELEASE_URL, { signal });
+  const custom = parseVersion(currentVersion)?.prerelease[0] === 'custom';
+  const response = await fetcher(custom ? CUSTOM_RELEASES_API_URL : UPSTREAM_LATEST_RELEASE_URL, { signal });
   if (!response.ok) throw new Error(`Upstream release check failed (${response.status})`);
-  const payload = await response.json() as { tag_name?: unknown };
+  type ReleaseMetadata = { tag_name?: unknown; draft?: boolean };
+  const data = await response.json() as ReleaseMetadata | ReleaseMetadata[];
+  let payload: ReleaseMetadata = Array.isArray(data) ? {} : data;
+  if (custom && Array.isArray(data)) {
+    for (const release of data) {
+      if (release.draft || typeof release.tag_name !== 'string'
+        || parseVersion(release.tag_name)?.prerelease[0] !== 'custom') continue;
+      if (typeof payload.tag_name !== 'string' || isNewerVersion(release.tag_name, payload.tag_name)) {
+        payload = release;
+      }
+    }
+  }
   if (typeof payload.tag_name !== 'string' || !parseVersion(payload.tag_name)) {
     throw new Error('Upstream did not return a valid release version');
   }

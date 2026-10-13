@@ -25,9 +25,9 @@ async function configFor(target: string): Promise<BuilderConfig> {
 const arm64 = await configFor('darwin-arm64');
 assert.deepEqual(arm64.publish, [{
   provider: 'github',
-  owner: '0xsline',
+  owner: 'Duylamneuuu',
   repo: 'OpenChatCut',
-  channel: 'latest-arm64',
+  channel: 'custom-arm64',
 }]);
 assert.deepEqual(arm64.mac?.target, ['dmg', 'zip'], 'macOS updates need a zip artifact in addition to the DMG');
 // Both main-process bundles have to ship: the entry imports ./app-main.mjs
@@ -50,7 +50,7 @@ assert.ok(
 );
 
 const x64 = await configFor('darwin-x64');
-assert.equal(x64.publish?.[0]?.channel, 'latest-x64');
+assert.equal(x64.publish?.[0]?.channel, 'custom');
 assert.equal(
   x64.files?.includes('!node_modules/onnxruntime-node/bin/napi-v6/darwin/x64/**'),
   false,

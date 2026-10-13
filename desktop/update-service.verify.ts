@@ -71,6 +71,13 @@ assert.equal(
   'smoke builds must not contact update servers',
 );
 
+const customUpdater = new FakeUpdater();
+new DesktopUpdateService(customUpdater as unknown as AppUpdater, {
+  enabled: true, currentVersion: '0.2.16-custom.1',
+});
+assert.equal(customUpdater.allowPrerelease, true, 'custom builds can discover future custom releases');
+assert.equal(customUpdater.autoDownload, false, 'custom releases still require a download action');
+
 const unsupportedUpdater = new FakeUpdater();
 const unsupported = new DesktopUpdateService(unsupportedUpdater as unknown as AppUpdater, {
   enabled: false,

@@ -4,6 +4,8 @@
 
 <h1 align="center">OpenChatCut</h1>
 
+> **Custom fork:** independent Codex / OpenCode / Antigravity CLI choices, native media import, and read-only Ask mode. See [CUSTOM-RELEASE.md](CUSTOM-RELEASE.md) for the Windows custom release, setup, and known limits. Use branch `agent/color-grading-ai` or a custom release tag.
+
 <p align="center">
   <a href="README_ZH.md">简体中文</a> · <strong>English</strong>
 </p>

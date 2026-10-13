@@ -21,7 +21,7 @@ for (const sample of samples) {
       headers: { 'content-type': 'application/json' },
     });
   });
-  assert.equal(requestedUrl, 'https://api.github.com/repos/0xsline/OpenChatCut/releases/latest');
+  assert.equal(requestedUrl, 'https://api.github.com/repos/Duylamneuuu/OpenChatCut/releases/latest');
   assert.equal(result.latestVersion, sample.tag);
   assert.equal(result.updateAvailable, sample.available, `${sample.current} compared with ${sample.tag}`);
 }
@@ -31,6 +31,18 @@ await assert.rejects(
   /valid release version/i,
   'missing tag_name should fail instead of reporting a false update',
 );
+
+const customResult = await queryLatestUpstreamRelease('0.2.16-custom.1', async (input) => {
+  assert.equal(String(input), 'https://api.github.com/repos/Duylamneuuu/OpenChatCut/releases?per_page=20');
+  return new Response(JSON.stringify([
+    { tag_name: 'v9.0.0', draft: false },
+    { tag_name: 'v0.2.16-custom.3', draft: true },
+    { tag_name: 'v0.2.16-custom.2', draft: false, prerelease: true },
+    { tag_name: 'v0.2.16-custom.1', draft: false, prerelease: true },
+  ]), { status: 200 });
+});
+assert.deepEqual(customResult, { latestVersion: 'v0.2.16-custom.2', updateAvailable: true },
+  'custom updates include published prereleases and exclude drafts and other channels');
 
 const availableState = mapDesktopUpdateState({
   phase: 'available',

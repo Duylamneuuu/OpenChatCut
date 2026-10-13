@@ -13,6 +13,7 @@ playwright-report/
 test-results/
 /output/
 .vite/
+/rtk/
 *.tsbuildinfo
 
 # OS / editor / temporary files
@@ -87,6 +88,7 @@ MODEL-OPT-PLAN.md
 # scripts/*.verify.mjs registered in package.json was silently skipped by
 # `git add -A`, and CI died with MODULE_NOT_FOUND on a file that exists locally.
 /scripts/*
+!/scripts/package-custom-portable.mjs
 !/scripts/sync-mediapipe.mjs
 # Stable regressions are *.verify.* by convention (see the *.check.* rule
 # above), so they are never local-only.
