@@ -180,6 +180,26 @@ try {
     console.log(`clipFxExport.verify [${decoder}]: ${frameCount}/${frameCount} ${label} fractional-rate effect frames are transformed and frame-accurate${exactMappingSupported ? '' : ' (frame-sync assertions skipped on Linux CI)'} (max inverse MSE ${maximumSameFrameDistance.toFixed(2)})`);
   }
 
+  // A missing /luts asset deliberately becomes pass-through at runtime. Prove
+  // that headless exports receive the real cube, while intensity zero is exact.
+  await run(ffmpegPath, ['-v', 'error', '-f', 'lavfi', '-i', `color=c=0x987050:s=${width}x${height}`, '-frames:v', '1', join(directory, 'lut-source.png')]);
+  const lutItem = { id: 'lut-image', name: 'lut-source.png', kind: 'image', src: '/media/uploads/lut-source.png',
+    track: 'V1', startFrame: 0, durationInFrames: 1, width, height };
+  const lutFrames = [];
+  for (const intensity of [null, 0, 1]) {
+    const output = join(directory, `lut-${intensity ?? 'baseline'}.mp4`);
+    await renderTimeline({
+      state: { fps, width, height, items: [{ ...lutItem, ...(intensity === null ? {} : {
+        effects: [{ id: 'community-lut', assetId: 'community:luttie-free-cinematic-teal-orange', overrides: { intensity } }],
+      }) }], trackOrder: ['V1'], tracks: { V1: { kind: 'video' } }, selectedId: null },
+      outputLocation: output, frameRange: [0, 0], codec: 'h264', h264Profile: softwareH264,
+    });
+    lutFrames.push((await decodeRgb(output, 1))[0]);
+  }
+  assert.ok(meanSquaredError(lutFrames[0], lutFrames[1]) < 30, 'LUT intensity zero preserves the original image');
+  assert.ok(meanSquaredError(lutFrames[0], lutFrames[2]) > 25, 'community cube must visibly grade the headless export, rather than silently pass through');
+  console.log('clipFxExport.verify: community cube export and intensity zero passed');
+
   const transitionClipFrames = 45;
   const transitionDurationFrames = 20;
   const transitionFrameCount = transitionClipFrames * 2;

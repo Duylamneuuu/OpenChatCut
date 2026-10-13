@@ -28,6 +28,8 @@ function configuredConcurrency(value, cores) {
 export function resolveRenderConcurrency({
   cores = availableParallelism(),
   memoryBytes = totalmem(),
+  width = 1920,
+  height = 1080,
   override = process.env.OPENCHATCUT_RENDER_CONCURRENCY,
 } = {}) {
   const count = cpuCount(cores);
@@ -36,8 +38,11 @@ export function resolveRenderConcurrency({
   if (count <= 2) return 1;
   const cpuTarget = Math.round(count * 0.8);
   // Reserve half of physical RAM for Electron, the OS and other applications;
-  // budget the remainder at ~1.25 GiB per headless render tab.
-  const memoryTarget = Math.max(1, Math.floor((memoryBytes / GIB * 0.5) / 1.25));
+  // budget the remainder at ~1.25 GiB per 1080p render tab. A 4K tab holds
+  // four times as many pixels in screenshots, staging canvases and GL textures.
+  const pixels = Number(width) * Number(height);
+  const pixelRatio = Number.isFinite(pixels) && pixels > 0 ? Math.max(1, pixels / (1920 * 1080)) : 1;
+  const memoryTarget = Math.max(1, Math.floor((memoryBytes / GIB * 0.5) / (1.25 * pixelRatio)));
   return Math.max(1, Math.min(MAX_RENDER_CONCURRENCY, cpuTarget, memoryTarget));
 }
 

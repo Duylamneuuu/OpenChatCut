@@ -70,6 +70,9 @@ async function buildBundle(outDir) {
   // Remotion copies publicDir under serveUrl/public; app uses root-absolute
   // paths (/fonts, /audio, …) like Vite — overlay product assets at serve root.
   await cp(ASSETS_DIR, serveUrl, { recursive: true });
+  // Community LUTs are maintained under public/luts for Vite. Headless export
+  // also resolves their root-absolute /luts URLs; never snapshot user uploads.
+  await cp(path.join(PUBLIC_DIR, 'luts'), path.join(serveUrl, 'luts'), { recursive: true });
   // User uploads live separately under public/media/uploads (or MEDIA_DIR);
   // relinkUploads() points serveUrl/media/uploads at the live upload dir.
   return serveUrl;

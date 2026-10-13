@@ -13,6 +13,7 @@ The current custom version is **v0.2.16-custom.2**, built from **agent/color-gra
 - Local speech processing and quick-edit fixes for clips containing spoken audio.
 - Scene detection, evidence thumbnails, and auto grading retry with CPU decoding when FFmpeg's compiled GPU support cannot initialize a usable device. Cancellation and unrelated media errors remain visible.
 - GitHub CI checks the custom branch on Linux and Windows, with a separate macOS export frame synchronization check.
+- Community LUT files are included in the headless render bundle, so their color grade is applied during export as well as preview. Export render concurrency scales its memory budget with the actual output dimensions.
 - AI export tools expose resolution and frame-rate presets, including 3840 × 2160 at 60 fps. Export time and hardware encoding depend on the machine and media.
 - The desktop updater uses this fork's custom release channel. Downloads and installation remain user initiated.
 

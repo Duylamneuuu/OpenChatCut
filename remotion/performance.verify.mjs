@@ -19,6 +19,11 @@ assert.equal(resolveRenderConcurrency({ cores: 4, memoryBytes: abundantMemory })
 assert.equal(resolveRenderConcurrency({ cores: 2, memoryBytes: abundantMemory }), 1);
 assert.equal(resolveRenderConcurrency({ cores: 32, memoryBytes: abundantMemory }), 24);
 assert.equal(resolveRenderConcurrency({ cores: 32, memoryBytes: 16 * 1024 ** 3 }), 6);
+assert.equal(resolveRenderConcurrency({ cores: 16, memoryBytes: 28 * 1024 ** 3, width: 3840, height: 2160 }), 2);
+assert.equal(resolveRenderConcurrency({ cores: 32, memoryBytes: abundantMemory, width: 3840, height: 2160 }), 6);
+assert.equal(resolveRenderConcurrency({ cores: 16, memoryBytes: 8 * 1024 ** 3, width: 7680, height: 4320 }), 1);
+assert.equal(resolveRenderConcurrency({ cores: 10, memoryBytes: abundantMemory, width: NaN, height: 1080 }), 8);
+assert.equal(resolveRenderConcurrency({ cores: 10, memoryBytes: abundantMemory, width: 3840, height: 2160, override: '4' }), 4);
 assert.equal(resolveRenderConcurrency({ cores: 10, override: '100%' }), 10);
 assert.equal(resolveRenderConcurrency({ cores: 10, override: '70%' }), 7);
 assert.equal(resolveRenderConcurrency({ cores: 10, override: '6' }), 6);

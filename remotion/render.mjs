@@ -46,8 +46,8 @@ function serverInputProps(props) {
   return { ...props, serverVideoDecoder: resolveServerVideoDecoder() };
 }
 
-export function currentRenderConcurrency() {
-  return resolveRenderConcurrency();
+export function currentRenderConcurrency(dimensions) {
+  return resolveRenderConcurrency(dimensions);
 }
 
 export function remotionFfmpegPath() {
@@ -150,7 +150,7 @@ async function renderMediaOptimized(options) {
     : null;
   const hardwareOptions = {
     ...renderOptions,
-    concurrency: currentRenderConcurrency(),
+    concurrency: currentRenderConcurrency({ width: outputWidth, height: outputHeight }),
     offthreadVideoThreads: offthreadVideoThreads(),
     hardwareAcceleration,
     ...(customOverride ? { ffmpegOverride: customOverride } : {}),
