@@ -19,7 +19,8 @@ body:
         - Web: version is shown in the footer/about area
         - From source (main): attach the commit (git log -1 --format=%h)
       options:
-        - v0.2.16-custom.1 (latest custom Release)
+        - v0.2.16-custom.2 (latest custom Release)
+        - v0.2.16-custom.1
         - v0.2.16
         - v0.2.15
         - v0.2.14

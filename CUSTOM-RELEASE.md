@@ -2,7 +2,7 @@
 
 This fork adds independent Codex, OpenCode, and Antigravity CLI choices to OpenChatCut, plus native media import and a read-only Ask mode. No CLI is the primary agent: the model selector determines which CLI handles a turn. An unavailable CLI reports its own error rather than switching providers.
 
-The first custom release is **v0.2.16-custom.1**, built from **agent/color-grading-ai** for **Windows x64**. It is published as a prerelease. Download custom builds from [Duylamneuuu/OpenChatCut releases](https://github.com/Duylamneuuu/OpenChatCut/releases).
+The current custom version is **v0.2.16-custom.2**, built from **agent/color-grading-ai** for **Windows x64**. Custom builds are published as prereleases. Download them from [Duylamneuuu/OpenChatCut releases](https://github.com/Duylamneuuu/OpenChatCut/releases).
 
 ## Included changes
 
@@ -11,6 +11,8 @@ The first custom release is **v0.2.16-custom.1**, built from **agent/color-gradi
 - Native media created by the selected CLI can be imported into the media pool and placed on the timeline. Antigravity uses its own native image generation; it does not call Codex.
 - LUT intensity accepts zero, the taste profile persists in an ES module app, and the server tool catalog includes the grading and quick-edit tools.
 - Local speech processing and quick-edit fixes for clips containing spoken audio.
+- Scene detection, evidence thumbnails, and auto grading retry with CPU decoding when FFmpeg's compiled GPU support cannot initialize a usable device. Cancellation and unrelated media errors remain visible.
+- GitHub CI checks the custom branch on Linux and Windows, with a separate macOS export frame synchronization check.
 - AI export tools expose resolution and frame-rate presets, including 3840 × 2160 at 60 fps. Export time and hardware encoding depend on the machine and media.
 - The desktop updater uses this fork's custom release channel. Downloads and installation remain user initiated.
 
@@ -45,4 +47,4 @@ node scripts/package-custom-portable.mjs
 
 Do not change `desktop-dist` while electron-builder is packaging it. Custom prerelease tags must match the version in `package.json` and the lockfile.
 
-Windows packages are unsigned; there is no Windows signing certificate included in this fork. macOS and Linux artifacts are not included in the first custom release.
+Windows packages are unsigned; there is no Windows signing certificate included in this fork. macOS and Linux artifacts are not included in these custom releases.
