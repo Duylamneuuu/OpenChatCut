@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { isSafeUploadName, resolveUploadFile } from '../media-dir.ts';
 import { ffmpegBin, ffprobeBin } from '../media-binaries.ts';
-import { resolveHwDecodeArgs } from '../media-acceleration.ts';
+import { resolveHwDecodeArgs, runWithHwDecodeFallback } from '../media-acceleration.ts';
 import {
   DEFAULT_MAX_SCENES,
   DEFAULT_MIN_SCENE_MS,
@@ -210,9 +210,9 @@ export async function detectScenesInFile(
   ].join(';');
   let progressBuffer = '';
   let lastProcessedMs = 0;
-  const output = await runCapture(ffmpegBin(), [
+  const output = await runWithHwDecodeFallback(await resolveHwDecodeArgs(ffmpegBin()), (decodeArgs) => runCapture(ffmpegBin(), [
     '-nostdin', '-hide_banner', '-loglevel', 'error',
-    ...(await resolveHwDecodeArgs(ffmpegBin(), undefined)), '-i', file,
+    ...decodeArgs, '-i', file,
     '-filter_complex', filter,
     '-map', '[hits]', '-an', '-f', 'null', '-',
     '-map', '[analysis_clock]', '-an',
@@ -237,7 +237,7 @@ export async function detectScenesInFile(
         });
       }
     },
-  });
+  }), options.signal);
   options.onProgress?.({ phase: 'finalizing', progress: 0.98, processedMs: durationMs, durationMs });
   const scenes = normalizeSceneCandidates(parseSceneMetadata(output), {
     threshold, minSceneMs, durationMs, maxScenes,
@@ -342,13 +342,13 @@ async function evidenceFrame(file: string, fileSize: number, timeMs: number): Pr
   const key = `${file}:${fileSize}:${Math.round(timeMs)}`;
   const cached = frameCache.get(key);
   if (cached) return cached;
-  const pending = runBuffer(ffmpegBin(), [
+  const pending = runWithHwDecodeFallback(await resolveHwDecodeArgs(ffmpegBin()), (decodeArgs) => runBuffer(ffmpegBin(), [
     '-nostdin', '-hide_banner', '-loglevel', 'error',
-    ...(await resolveHwDecodeArgs(ffmpegBin(), undefined)),
+    ...decodeArgs,
     '-ss', String(Math.max(0, timeMs) / 1000), '-i', file,
     '-frames:v', '1', '-vf', 'scale=320:-2:flags=fast_bilinear',
     '-c:v', 'mjpeg', '-q:v', '5', '-f', 'image2pipe', 'pipe:1',
-  ], 30_000).then((buffer) => {
+  ], 30_000)).then((buffer) => {
     if (!buffer.length) throw new Error('no frame extracted');
     return buffer;
   }).catch((error) => {

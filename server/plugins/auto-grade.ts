@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { spawn } from 'node:child_process';
 import { stat } from 'node:fs/promises';
 import { ffmpegBin, ffprobeBin } from '../media-binaries.ts';
-import { resolveHwDecodeArgs } from '../media-acceleration.ts';
+import { resolveHwDecodeArgs, runWithHwDecodeFallback } from '../media-acceleration.ts';
 import { isSafeUploadName, resolveUploadFile } from '../media-dir.ts';
 import {
   analyzeSignalFrames,
@@ -169,14 +169,17 @@ export async function analyzeColorInFile(file: string, options: AnalyzeColorOpti
   const sampleFps = autoGradeSampleFps(durationSeconds);
   const args = ['-nostdin', '-hide_banner', '-loglevel', 'error'];
   if (startSeconds > 0) args.push('-ss', startSeconds.toFixed(3));
-  args.push(...(await resolveHwDecodeArgs(ffmpegBin(), undefined)));
+  const inputIndex = args.length;
   args.push('-i', file);
   if (!isStill) args.push('-t', durationSeconds.toFixed(3));
   args.push(
     '-vf', `${isStill ? '' : `fps=${sampleFps.toFixed(3)},`}signalstats,metadata=print:file=-`,
     '-frames:v', String(isStill ? 1 : SAMPLE_COUNT), '-an', '-f', 'null', '-',
   );
-  const frames = parseSignalStats(await runCapture(ffmpegBin(), args));
+  const frames = parseSignalStats(await runWithHwDecodeFallback(
+    await resolveHwDecodeArgs(ffmpegBin()),
+    (decodeArgs) => runCapture(ffmpegBin(), [...args.slice(0, inputIndex), ...decodeArgs, ...args.slice(inputIndex)]),
+  ));
   if (!frames.length) throw new Error('ffmpeg signalstats returned no samples');
   return {
     ...analyzeSignalFrames(frames, profile),

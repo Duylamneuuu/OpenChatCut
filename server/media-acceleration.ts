@@ -147,6 +147,25 @@ export async function resolveHwDecodeArgs(ffmpeg: string, encoder?: H264Encoder)
   return available.has(candidate[1]!) ? candidate : [];
 }
 
+/** Compiled acceleration support does not prove that a device or this codec is usable. */
+export async function runWithHwDecodeFallback<T>(
+  decodeArgs: string[],
+  run: (args: string[]) => Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> {
+  try {
+    return await run(decodeArgs);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!decodeArgs.length || signal?.aborted
+      || (error instanceof Error && error.name === 'AbortError')
+      || !/hardware (?:device|decoder)|device (?:creation|setup) failed|no device available|failed to (?:create|initiali[sz]e).*device|cannot load (?:libcuda|nvcuda)|no (?:va display|capable devices)|hwaccel.*(?:failed|unsupported|not supported)/i.test(message)) {
+      throw error;
+    }
+    return run([]);
+  }
+}
+
 export function h264HardwareCandidates(platform: NodeJS.Platform = process.platform): H264Encoder[] {
   if (platform === 'darwin') return ['h264_videotoolbox'];
   if (platform === 'win32') return ['h264_nvenc', 'h264_qsv', 'h264_amf'];

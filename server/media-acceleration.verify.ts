@@ -12,6 +12,7 @@ import {
   isHardwareH264Encoder,
   resolveH264TargetBitrate,
   resolveVaapiDevice,
+  runWithHwDecodeFallback,
   selectWorkingH264Encoder,
   shouldFallbackH264Encoder,
   type H264Encoder,
@@ -27,6 +28,43 @@ assert.equal(isHardwareH264Encoder('h264_vaapi'), true);
 assert.deepEqual(h264EncoderAttempts('h264_nvenc'), ['h264_nvenc', 'libx264']);
 assert.deepEqual(h264EncoderAttempts('libx264'), ['libx264']);
 assert.deepEqual(hwDecodeArgs('libx264'), [], 'software encoding must keep decoded frames in system memory');
+
+for (const diagnostic of [
+  'No device available for decoder: device type d3d11va needed for codec h264',
+  'Hardware device setup failed for decoder',
+  'Device creation failed: -1313558101',
+  'No VA display found for device /dev/dri/renderD128',
+]) {
+  const attempts: string[][] = [];
+  const result = await runWithHwDecodeFallback(['-hwaccel', 'd3d11va'], async (args) => {
+    attempts.push(args);
+    if (args.length) throw new Error(diagnostic);
+    return Buffer.from('decoded frame');
+  });
+  assert.equal(result.toString(), 'decoded frame');
+  assert.deepEqual(attempts, [['-hwaccel', 'd3d11va'], []]);
+}
+for (const failure of [new Error('Invalid data found when processing input'), new DOMException('Hardware device cancelled', 'AbortError')]) {
+  let attempts = 0;
+  await assert.rejects(runWithHwDecodeFallback(['-hwaccel', 'cuda'], async () => { attempts++; throw failure; }), (error) => error === failure);
+  assert.equal(attempts, 1, 'unrelated failures and cancellation must not retry');
+}
+for (const args of [[], ['-hwaccel', 'cuda']]) {
+  const controller = new AbortController();
+  let attempts = 0;
+  await assert.rejects(runWithHwDecodeFallback(args, async () => {
+    attempts++;
+    controller.abort();
+    throw new Error('Hardware device setup failed for decoder');
+  }, controller.signal));
+  assert.equal(attempts, 1, 'software failures and aborted work must not retry');
+}
+let decodeAttempts = 0;
+await assert.rejects(runWithHwDecodeFallback(['-hwaccel', 'cuda'], async () => {
+  decodeAttempts++;
+  throw new Error(decodeAttempts === 1 ? 'Hardware device setup failed' : 'Invalid data found when processing input');
+}), /Invalid data/);
+assert.equal(decodeAttempts, 2, 'CPU failure must be surfaced without another retry');
 
 assert.equal(
   h264EncoderFallbackReason('h264_nvenc', new Error('/private/path: No NVENC capable devices found')),
