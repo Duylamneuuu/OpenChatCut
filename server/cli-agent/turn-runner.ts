@@ -74,8 +74,10 @@ export async function runServerCliTurn(
   const timer = setTimeout(() => controller.abort(new Error('CLI turn timed out after 600s.')), 600_000);
   const bridge = await startCliToolBridge(request, emit, controller.signal);
   try {
-    const system = `${request.system}\n\nUse only the OpenChatCut MCP tools to inspect and edit video. `
-      + 'Do not use shell, file, web, subagent or external tools. Tool results are authoritative; report actual outcomes.';
+    const system = `${request.system}\n\nUse only the OpenChatCut MCP tools to inspect and edit the project. `
+      + (request.askOnly ? 'This is a read-only/text task: do not generate media. '
+        : 'For an explicit media-generation request, use your own native generation tool, then immediately call the OpenChatCut import_asset tool with the real absolute output path, a friendly name, and addToTimeline=true when the user requested placement. Antigravity may use its own native image-generation specialist in its own harness for this image task. Use ToolSearch to activate import_asset if needed. Keep generated files outside this disposable turn workspace. ')
+      + 'Do not invoke a different CLI/platform or silently change the selected agent. Do not use shell, direct file editing, web, general-purpose subagents or unrelated external tools. Tool results are authoritative; report actual outcomes.';
     let args: string[]; let input: string;
     if (backend === 'opencode') {
       const config = {

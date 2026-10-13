@@ -190,3 +190,32 @@ try {
   delete (globalThis as unknown as { window?: unknown }).window;
 }
 console.log('agent-path-import-tools.verify: discovery and batch import passed');
+
+// Files produced by any CLI land in the pool AND timeline with explicit
+// placement; pool-only requests keep the timeline unchanged.
+const placed: Array<{ durationInFrames: number; at: unknown }> = [];
+const imageContext = {
+  ...projectCtx,
+  commands: {
+    addAsset: (asset: { id: string; name: string }) => addedAssets.push(asset),
+    addMediaItem: (asset: { durationInFrames: number }, at: unknown) => { placed.push({ durationInFrames: asset.durationInFrames, at }); return 'image-item'; },
+  },
+} as unknown as AgentContext;
+(globalThis as unknown as { window?: unknown }).window = {
+  openChatCutDesktop: {
+    async importAgentPaths() { return { imported: [{ ...importedFile, name: 'generated.png', kind: 'image', durationSeconds: undefined }], errors: [], unsupportedFiles: [], duplicateCount: 0 }; },
+  },
+};
+try {
+  const generated = await execAgentPathImportTool('import_asset', { path: 'F:/test/generated.png', name: 'Blue test image', addToTimeline: true, startFrame: 90, durationSeconds: 3, track: 'V2' }, imageContext);
+  assert.equal(generated.ok, true);
+  assert.equal((generated.imported as Array<{ name: string }>)[0].name, 'Blue test image');
+  assert.equal(generated.addedTo, 'media-pool-and-timeline');
+  assert.deepEqual(generated.timelineItemIds, ['image-item']);
+  assert.deepEqual(placed[0], { durationInFrames: 90, at: { startFrame: 90, track: 'V2' } });
+  await execAgentPathImportTool('import_asset', { path: 'F:/test/generated.png', addToTimeline: false }, imageContext);
+  assert.equal(placed.length, 1);
+} finally {
+  delete (globalThis as unknown as { window?: unknown }).window;
+}
+console.log('agent-path-import-tools.verify: generated-file handoff, automatic placement, friendly names and pool-only mode passed');

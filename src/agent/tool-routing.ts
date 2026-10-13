@@ -25,6 +25,10 @@ const GENERATE_TARGETS = [
 
 const ROUTING_GROUPS: readonly RoutingGroup[] = [
   {
+    requestKeywords: ['image', 'picture', 'photo', 'ảnh', 'hình', '图片', '图像'],
+    tools: ['import_asset', 'import_assets'],
+  },
+  {
     mutating: true,
     requestKeywords: [
       'trim', 'split', 'move clip', 'delete clip', 'remove clip', 'retime', 'slip edit',

@@ -5497,7 +5497,7 @@
     },
     {
       "name": "import_assets",
-      "description": "Import selected local media paths into the media pool in one batch. Desktop only. Local access is enabled by default; explicit AGENT_IMPORT_ROOTS restricts access. Reuses normal media probing and skips duplicate content. Use browse_local_media to find paths first.",
+      "description": "Import selected local media paths into the media pool in one batch, including images, videos, voice, music and SFX created by any CLI or external tool. Set addToTimeline=true to place imported media automatically. Desktop only. Local access is enabled by default; explicit AGENT_IMPORT_ROOTS restricts access. Reuses normal media probing and skips duplicate content. Use browse_local_media to find paths first.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -5510,6 +5510,23 @@
               "minLength": 1
             },
             "description": "Absolute paths of selected media files."
+          },
+          "addToTimeline": {
+            "type": "boolean",
+            "description": "Defaults to false. True also places imported assets on the active timeline."
+          },
+          "startFrame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "track": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 3600,
+            "description": "Optional display duration for still images only."
           }
         },
         "required": [
@@ -5526,6 +5543,29 @@
           "path": {
             "type": "string",
             "description": "Absolute path to the media file."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Optional friendly asset name, useful for CLI-generated files with opaque filenames."
+          },
+          "addToTimeline": {
+            "type": "boolean",
+            "description": "Defaults to false. True also places imported media on the active timeline."
+          },
+          "startFrame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "track": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 3600,
+            "description": "Optional display duration for still images only."
           }
         },
         "required": [

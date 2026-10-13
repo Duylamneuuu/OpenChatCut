@@ -33,11 +33,15 @@ export const AGENT_PATH_IMPORT_SCHEMAS: AgentToolSchema[] = [
   },
   {
     name: 'import_assets',
-    description: 'Import selected local media paths into the media pool in one batch. Desktop only. Local access is enabled by default; explicit AGENT_IMPORT_ROOTS restricts access. Reuses normal media probing and skips duplicate content. Use browse_local_media to find paths first.',
+    description: 'Import selected local media paths into the media pool in one batch, including images, videos, voice, music and SFX created by any CLI or external tool. Set addToTimeline=true to place imported media automatically. Desktop only. Local access is enabled by default; explicit AGENT_IMPORT_ROOTS restricts access. Reuses normal media probing and skips duplicate content. Use browse_local_media to find paths first.',
     input_schema: {
       type: 'object',
       properties: {
         paths: { type: 'array', minItems: 1, maxItems: 100, items: { type: 'string', minLength: 1 }, description: 'Absolute paths of selected media files.' },
+        addToTimeline: { type: 'boolean', description: 'Defaults to false. True also places imported assets on the active timeline.' },
+        startFrame: { type: 'integer', minimum: 0 },
+        track: { type: 'string' },
+        durationSeconds: { type: 'number', exclusiveMinimum: 0, maximum: 3600, description: 'Optional display duration for still images only.' },
       },
       required: ['paths'],
     },
@@ -53,6 +57,11 @@ export const AGENT_PATH_IMPORT_SCHEMAS: AgentToolSchema[] = [
       type: 'object',
       properties: {
         path: { type: 'string', description: 'Absolute path to the media file.' },
+        name: { type: 'string', minLength: 1, maxLength: 128, description: 'Optional friendly asset name, useful for CLI-generated files with opaque filenames.' },
+        addToTimeline: { type: 'boolean', description: 'Defaults to false. True also places imported media on the active timeline.' },
+        startFrame: { type: 'integer', minimum: 0 },
+        track: { type: 'string' },
+        durationSeconds: { type: 'number', exclusiveMinimum: 0, maximum: 3600, description: 'Optional display duration for still images only.' },
       },
       required: ['path'],
     },
@@ -159,13 +168,14 @@ export async function importLocalPaths(
     || !paths.every((path): path is string => typeof path === 'string' && path.trim().length > 0)) {
     return { error: 'path is required; provide one non-empty path or 1-100 paths for import_assets' };
   }
-  return importPathsIntoProject(paths, api, ctx);
+  return importPathsIntoProject(paths, api, ctx, args);
 }
 
 async function importPathsIntoProject(
   paths: string[],
   api: PathImportApi,
   ctx: AgentContext,
+  args: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
   const projectId = ctx.getProjectId?.();
   if (!projectId) return { error: 'no open project; open a project before importing local paths' };
@@ -194,11 +204,31 @@ async function importPathsIntoProject(
   if (ctx.getProjectId?.() !== projectId) {
     return { error: 'active project changed during local import; retry in the intended project' };
   }
-  for (const asset of assets) ctx.commands.addAsset(asset);
+  const timelineItemIds: string[] = [];
+  let startFrame = typeof args.startFrame === 'number' ? args.startFrame : undefined;
+  for (const asset of assets) {
+    if (typeof args.name === 'string' && args.name.trim()) asset.name = args.name.trim();
+    if (asset.kind === 'image' && typeof args.durationSeconds === 'number') {
+      asset.durationInFrames = Math.max(1, Math.round(args.durationSeconds * state.fps));
+    }
+    ctx.commands.addAsset(asset);
+    if (args.addToTimeline === true) {
+      timelineItemIds.push(ctx.commands.addMediaItem(asset, {
+        ...(startFrame !== undefined ? { startFrame } : {}),
+        ...(typeof args.track === 'string' ? { track: args.track } : {}),
+      }));
+      if (startFrame !== undefined) startFrame += asset.durationInFrames;
+      else {
+        const placed = ctx.getState().items.find((item) => item.id === timelineItemIds.at(-1));
+        if (placed) startFrame = placed.startFrame + placed.durationInFrames;
+      }
+    }
+  }
   return {
     ok: true,
     imported: assets.map((asset) => ({ id: asset.id, name: asset.name, kind: asset.kind, src: asset.src })),
     duplicateCount: result.duplicateCount,
+    ...(timelineItemIds.length ? { addedTo: 'media-pool-and-timeline', timelineItemIds } : { addedTo: 'media-pool' }),
     skippedDuplicates: result.duplicateCount > 0
       && !assets.length && !result.errors.length && !result.unsupportedFiles.length,
     ...(result.unsupportedFiles.length ? { unsupportedFiles: result.unsupportedFiles.slice(0, 50) } : {}),

@@ -164,7 +164,7 @@ function providerSuffix(cap: CapabilityKey, mode: ApprovalMode): string {
 
 // label + the primary tool + a fallback hint when the capability is off.
 const CAP_ROWS: { key: CapabilityKey; label: string; tool: string; fallback: string }[] = [
-  { key: 'image', label: 'Image generation', tool: 'submit_image', fallback: 'use push_asset/import_url_asset for a public image, or ask the user to upload/paste one' },
+  { key: 'image', label: 'Image generation', tool: 'submit_image', fallback: 'use the selected CLI agent\'s own native image tool when available, then import the returned local file; or import an existing local/public image' },
   { key: 'voice', label: 'Voice/TTS', tool: 'submit_voice', fallback: 'ask the user to provide and upload/paste audio' },
   { key: 'video', label: 'Video generation', tool: 'submit_video', fallback: 'use push_asset for a public video, or ask the user to upload one' },
   { key: 'music', label: 'Music generation', tool: 'submit_music', fallback: 'use list_audio/add_audio from the library, or ask the user to upload audio' },
@@ -190,6 +190,7 @@ export function capabilitiesPrompt(
     else off.push(`${r.label} (${r.tool}) — ${r.fallback}`);
   }
   return `\n\n# Available capabilities (based on configured API keys; local editing is always available without keys)\n`
+    + 'Desktop CLI media: native generation belongs to the currently selected agent and its account. For explicit image requests, use that agent\'s own native image tool if available, then import the returned real local file with import_asset/import_assets and addToTimeline=true for requested placement. No other agent is a default or fallback generator. Never invoke or switch to another CLI unless the user explicitly asks. Unconfigured cloud submit_image does not disable native CLI generation; report native account/tool failures honestly.\n'
     + `✅ Configured: ${on.length ? on.join(', ') : '(no key-gated capabilities)'}.\n`
     + falModelSuffix('image') + falModelSuffix('video') + '\n'
     + `⬜ Not configured — do not promise these in a plan or call them; they return "not configured" and waste a turn:\n`

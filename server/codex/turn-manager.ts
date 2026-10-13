@@ -162,6 +162,7 @@ function baseInstructions(request: CodexTurnRequest): string {
     : [
         'Use only the provided OpenChatCut editor tools when the task needs project reads or changes.',
         'Their results come from the existing OpenChatCut proposal workflow; never claim a change succeeded before its tool result confirms success.',
+        'For an explicit image-generation request, use your own native image_generation tool, then import the savedPath with import_asset and addToTimeline=true when placement is requested. Use ToolSearch to activate import_asset if needed. Never invoke another agent to generate media.',
       ].join(' ');
   return [
     request.system.trim(),
@@ -184,6 +185,7 @@ function threadStartParams(request: CodexTurnRequest): Record<string, unknown> {
     config: {
       features: {
         ...Object.fromEntries(CODEX_DISABLED_FEATURES.map((feature) => [feature, false])),
+        image_generation: request.askOnly !== true,
         code_mode_host: true,
       },
       tools: { view_image: false },
