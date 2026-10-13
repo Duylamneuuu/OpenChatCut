@@ -220,6 +220,8 @@ export default {
   '模式': 'Mode',
   '代理模式': 'Agent mode',
   '可编辑时间线，改动可撤销': 'Can edit the timeline; changes are undoable',
+  '询问或分析项目，不修改时间线': 'Ask about or analyze the project without changing the timeline',
+  '询问 AI 关于项目的问题 - @ 引用素材': 'Ask AI about your project - @ reference media',
   '模型': 'Model',
   '选择模型': 'Choose model',
   '当前模型：{name}': 'Current model: {name}',

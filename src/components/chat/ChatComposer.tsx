@@ -163,7 +163,7 @@ export function ChatComposer(props: ChatComposerProps) {
   const modeRow = (m: ChatMode, label: string, desc: string) => {
     const active = mode === m;
     return (
-      <button onClick={() => { onModeChange(m); closePop(); }}
+      <button aria-pressed={active} onClick={() => { onModeChange(m); closePop(); }}
         style={{ display: 'block', width: '100%', textAlign: 'left', background: active ? theme.panel : 'none', border: 'none', borderRadius: 3, padding: '6px 9px', cursor: 'pointer', color: theme.text }}
         onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = theme.panel; }}
         onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'none'; }}>
@@ -405,7 +405,9 @@ export function ChatComposer(props: ChatComposerProps) {
           const files = Array.from(e.clipboardData?.files ?? []);
           if (files.length > 0 && onPasteFiles) { e.preventDefault(); onPasteFiles(files); }
         }}
-        placeholder={placeholder ?? t('告诉 AI 要做哪些修改 - @ 引用素材')}
+        placeholder={placeholder ?? (mode === 'ask'
+          ? t('询问 AI 关于项目的问题 - @ 引用素材')
+          : t('告诉 AI 要做哪些修改 - @ 引用素材'))}
         aria-describedby={attachmentsPending ? 'cc-chat-composer-import-status' : undefined}
         rows={1}
         style={{
@@ -426,6 +428,7 @@ export function ChatComposer(props: ChatComposerProps) {
       {pop === 'mode' && (
         <ComposerPopover width={172} anchor={popAnchor} onClose={closePop}>
           {modeRow('agent', t('代理模式'), t('可编辑时间线，改动可撤销'))}
+          {modeRow('ask', 'Ask', t('询问或分析项目，不修改时间线'))}
         </ComposerPopover>
       )}
       {pop === 'model' && (

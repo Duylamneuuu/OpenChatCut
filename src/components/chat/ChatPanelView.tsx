@@ -144,7 +144,7 @@ function MessageEntries({ controller }: { controller: ChatPanelController }) {
         widgetSubmitted={agent.messages.slice(item.index + 1).some((message) => message.role === 'user')}
         onRetry={(retry) => onRetry(item.index, retry)}
         onContinue={item.msg.role === 'continue' && item.index === agent.messages.length - 1 && !agent.running
-          ? () => { void agent.send('继续'); } : null}
+          ? () => { void agent.send('继续', { askOnly: composer.mode === 'ask' }); } : null}
         onWidgetSubmit={(answer) => {
           if (!agent.running) void agent.send(answer, { askOnly: composer.mode === 'ask' });
         }} />
@@ -235,8 +235,10 @@ function ComposerInput({ controller }: { controller: ChatPanelController }) {
     pendingAttachmentCount={composer.pendingAttachmentCount}
     pasteError={composer.pasteError} onDismissPasteError={() => composer.setPasteError(null)}
     onDropEditorItem={actions.onDropEditorItem} taRef={composer.taRef}
-    placeholder={agent.messages.length === 0
-      ? t('描述你想要创建的内容...') : t('告诉 AI 要做哪些修改 - @ 引用素材')} />;
+    placeholder={composer.mode === 'ask'
+      ? t('询问 AI 关于项目的问题 - @ 引用素材')
+      : agent.messages.length === 0
+        ? t('描述你想要创建的内容...') : t('告诉 AI 要做哪些修改 - @ 引用素材')} />;
 }
 
 function ComposerSection({ controller }: { controller: ChatPanelController }) {
