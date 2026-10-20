@@ -30,6 +30,8 @@ test-results/
 *.rej
 /.cache/
 /promo/fonts.ts
+/public/cutpilot/promo-ticks.wav
+/public/cutpilot/promo-bed.wav
 /.tmp/
 /tmp/
 /temp/

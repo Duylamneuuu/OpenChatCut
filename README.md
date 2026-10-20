@@ -405,13 +405,17 @@ A second pass of the same server, same prompt, printed the local actions. They w
 
 #### Launch film
 
-`promo/` is a Remotion composition, “Introducing CutPilot Live”, 36 seconds at 1920×1080. It uses the repo’s existing `remotion`, `@remotion/bundler`, and `@remotion/renderer` packages (there is no separate Remotion CLI dependency).
+`promo/` is a Remotion composition, “CutPilot Live”, 30 seconds at 30 fps. `IntroducingCutPilot` is 1920×1080. `IntroducingCutPilotSquare` is the 1080×1080 cut of the same scenes. Frame timings live in `promo/timeline.ts`. The storyboard is `promo/storyboard.json`. It uses the repo’s existing `remotion`, `@remotion/bundler`, `@remotion/renderer`, and `@remotion/media` packages (there is no separate Remotion CLI dependency).
 
 ```powershell
 npm run cutpilot:promo
+node scripts/render-cutpilot-promo.mjs --stills 40,130,280,450,570,860
+node scripts/render-cutpilot-promo.mjs --music
 ```
 
-That writes `/opt/cursor/artifacts/cutpilot-promo.mp4` and a poster still at frame 1040, `/opt/cursor/artifacts/cutpilot-promo-poster.png`. Override the paths with `CUTPILOT_PROMO_OUT` and `CUTPILOT_PROMO_POSTER`. Chrome is `CC_BROWSER_EXECUTABLE`, or `/opt/google/chrome/chrome` when that binary is present. `node scripts/render-cutpilot-promo.mjs --stills 108,420,920` writes preview frames under `/tmp`.
+The default mix is silent except for four synthesized UI ticks. `--music` adds a quiet original bed and still drops to silence for the black shot (frames 720–779, including the 12-frame hit). Numbers on screen are the rule baseline and the measured rule latency in `samples/cutpilot/talk/benchmark-log.txt` (p50 0.02 ms, p99 1.40 ms). The silence chip is the interview’s 700 ms gap. The “um” and the two jokes are the captioned stand-in. “~10 decisions / second” is the sprint pace, not a measured model throughput.
+
+That writes `/opt/cursor/artifacts/cutpilot-promo.mp4`, `/opt/cursor/artifacts/cutpilot-promo-square.mp4`, and a poster still at frame 860. Override the paths with `CUTPILOT_PROMO_OUT`, `CUTPILOT_PROMO_SQUARE`, and `CUTPILOT_PROMO_POSTER`. Chrome is `CC_BROWSER_EXECUTABLE`, or `/opt/google/chrome/chrome` when that binary is present. `--stills` writes preview frames under `/tmp/cutpilot-dl`.
 
 ```json
 {
