@@ -312,6 +312,92 @@ npm run desktop:dev
 
 The desktop app uses an Electron shell with the same embedded services. The web development build and desktop build share project, agent, generation, and export logic.
 
+### CutPilot Live
+
+CutPilot Live is a demo mode inside the editor: while a clip plays, a decision loop keeps, cuts, trims, or covers each slice, and the timeline updates in place. Open it from the project dashboard (**Open demo**) or from the editor top bar (**CutPilot**). The page is also at `http://localhost:5199/#/cutpilot`.
+
+Rule-only mode is the default. It needs no API key and no GPU. Local and hosted providers are optional OpenAI-compatible endpoints. A decision is sent to the stronger endpoint only when its confidence is below `CUTPILOT_CONFIDENCE_THRESHOLD` (default `0.6`). Keys stay in the server process.
+
+The bundled sample is a 60-second captioned stand-in, not a recorded talking head. Its transcript is hand-aligned to the captions. **Sprint 600** replays those slices until 600 decisions have been made, one every 100 ms, so the counter can reach 600 decisions in about a minute. The default live pass follows the preview clock instead, which is the one that shows cuts landing on the picture.
+
+Type or speak a note while a run is in progress (`keep the jokes`, `slower pace`, `add b-roll on the desk shot`). The next slice uses the new note. On Windows, speech input depends on the browser's Web Speech API; typing always works.
+
+#### Windows setup
+
+Install [Node.js 24](https://nodejs.org/) (the range in `package.json` is `>=24 <25`) and git. From PowerShell, in the checkout:
+
+```powershell
+npm install
+copy .env.example .env.local
+npm run dev
+```
+
+`npm install` pulls `ffmpeg-static` and `@ffprobe-installer/ffprobe`. If those binaries are blocked, install FFmpeg yourself and point at it:
+
+```powershell
+$env:FFMPEG_PATH = "C:\ffmpeg\bin\ffmpeg.exe"
+$env:FFPROBE_PATH = "C:\ffmpeg\bin\ffprobe.exe"
+```
+
+Then open `http://localhost:5199`, choose **Open demo**, leave the provider on **Rule only**, and press **Run**. No key is required.
+
+Optional local model (llama.cpp `llama-server`, any small GGUF, including a Liquid d1-3B build if you have one):
+
+```powershell
+llama-server -m C:\models\liquid-d1-3b.gguf --port 8080
+$env:CUTPILOT_LOCAL_BASE_URL = "http://127.0.0.1:8080"
+$env:CUTPILOT_LOCAL_MODEL = "liquid-d1-3b"
+$env:CUTPILOT_PROVIDER = "local"
+```
+
+`CUTPILOT_LOCAL_PROTOCOL=systemone` posts to `/v1/systemone` instead of chat completions. A base URL may be an origin (`http://127.0.0.1:8080`) or a prefix that already ends in `/v1`.
+
+Optional hosted model (OpenRouter, Gemini's OpenAI-compatible endpoint, or any other chat-completions server):
+
+```powershell
+$env:CUTPILOT_HOSTED_BASE_URL = "https://openrouter.ai/api/v1"
+$env:CUTPILOT_HOSTED_API_KEY = "sk-or-..."
+$env:CUTPILOT_HOSTED_MODEL = "google/gemini-2.5-flash"
+$env:CUTPILOT_HOSTED_USD_PER_1K = "0.15"
+$env:CUTPILOT_PROVIDER = "hosted"
+```
+
+Leave `*_USD_PER_1K` empty when you do not know the price. The counter then says the cost is unpriced instead of pretending it is zero. Set `CUTPILOT_ESCALATION_BASE_URL` (and its model, key, and protocol) to enable the confidence handoff. Restart `npm run dev` after changing `.env.local`.
+
+#### Benchmark
+
+The harness runs one labeled clip through each provider you name and prints measured latency and agreement. It does not fill in numbers for a provider that was not called.
+
+```powershell
+npm run cutpilot:bench
+npm run cutpilot:bench -- --providers rule,local,hosted --steer
+npx tsx scripts/cutpilot-benchmark.ts --labels samples/cutpilot/labels.sample.json --transcript samples/cutpilot/transcript.json
+```
+
+`--steer` runs the clip twice and counts joke slices that flip from cut to keep after `keep the jokes, slower pace`. `--sprint` repeats the clip to 600 decisions and does not score labels. `--transcribe` replaces the transcript only when `CUTPILOT_WHISPER_CMD` or `CUTPILOT_WHISPER_MODEL` is set. `--apply-scenes` splits slices on ffmpeg scene cuts; the bundled labels will no longer match, so the script says so and skips the score.
+
+Remote calls are reported as one upstream wait. Unless the endpoint itself separates compute from transport, **model milliseconds stay 0 and network milliseconds are the full round trip**. The rule provider is the opposite: model time is in-process and network time is 0. Executor time is the timeline reducer. Cost per 1,000 decisions is the mean of priced calls; missing prices print `not configured`.
+
+`samples/cutpilot/labels.sample.json` is a tiny format example. It was produced by the rule baseline on `samples/cutpilot/transcript.json` with an empty directive. Agreement against that file restates the rubric. It is not a human-labeled set and not a published accuracy number. Replace it with your own labels before reading F1 as quality.
+
+```json
+{
+  "version": 1,
+  "clipId": "my-clip",
+  "fps": 30,
+  "directive": "",
+  "about": "One row per segment id from the transcript segmenter.",
+  "labels": [
+    { "segmentId": "s000", "action": "keep", "text": "Welcome back." },
+    { "segmentId": "s002", "action": "cut", "text": "(silence)" }
+  ]
+}
+```
+
+`text` is optional and ignored by the scorer. Actions are `keep`, `cut`, `trim`, or `broll`. Segment ids come from the same segmenter the demo uses (silence gaps, sentence breaks, and a maximum slice length).
+
+Regenerate the stand-in video, transcript, and rubric file with `npm run cutpilot:sample`. That command shells out to ffmpeg.
+
 ---
 
 ## Project Status

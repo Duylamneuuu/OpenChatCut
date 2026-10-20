@@ -1,11 +1,13 @@
 
 import { useT } from './i18n/locale';
 import {
+  navigateTo,
   useAgentBackendSync,
   useAppRoute,
   useProjects,
 } from './app/appShell';
 import { AppSplash, DashboardRoute, EditorRoute } from './app/AppViews';
+import { CutPilotLive } from './components/cutpilot/CutPilotLive';
 import { useInferenceWarmup } from './hooks/useInferenceWarmup';
 import { useUiScaleShortcuts } from './hooks/useUiScaleShortcuts';
 
@@ -21,6 +23,9 @@ export default function App() {
   if (!projects) return <AppSplash text={t('加载中…')} />;
   if (route.name === 'editor') {
     return <EditorRoute route={route} projects={projects} refresh={refresh} />;
+  }
+  if (route.name === 'cutpilot') {
+    return <CutPilotLive onHome={() => navigateTo('#/')} />;
   }
   return <DashboardRoute projects={projects} refresh={refresh} />;
 }

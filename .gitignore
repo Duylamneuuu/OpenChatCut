@@ -91,6 +91,8 @@ MODEL-OPT-PLAN.md
 # Stable regressions are *.verify.* by convention (see the *.check.* rule
 # above), so they are never local-only.
 !/scripts/*.verify.mjs
+!/scripts/cutpilot-benchmark.ts
+!/scripts/cutpilot-sample-media.ts
 
 # Local marketing assets and drafts
 /marketing/

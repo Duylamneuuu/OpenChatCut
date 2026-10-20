@@ -1,0 +1,613 @@
+{
+  "version": 1,
+  "clipId": "cutpilot-sample",
+  "durationMs": 60000,
+  "fps": 30,
+  "words": [
+    {
+      "text": "Welcome",
+      "start": 0,
+      "end": 350
+    },
+    {
+      "text": "back.",
+      "start": 350,
+      "end": 700
+    },
+    {
+      "text": "Today",
+      "start": 700,
+      "end": 1050
+    },
+    {
+      "text": "we",
+      "start": 1050,
+      "end": 1400
+    },
+    {
+      "text": "cut",
+      "start": 1400,
+      "end": 1750
+    },
+    {
+      "text": "this",
+      "start": 1750,
+      "end": 2100
+    },
+    {
+      "text": "vlog",
+      "start": 2100,
+      "end": 2450
+    },
+    {
+      "text": "live.",
+      "start": 2450,
+      "end": 2800
+    },
+    {
+      "text": "um",
+      "start": 3600,
+      "end": 4100
+    },
+    {
+      "text": "The",
+      "start": 4900,
+      "end": 5255
+    },
+    {
+      "text": "first",
+      "start": 5255,
+      "end": 5609
+    },
+    {
+      "text": "point",
+      "start": 5609,
+      "end": 5964
+    },
+    {
+      "text": "is",
+      "start": 5964,
+      "end": 6318
+    },
+    {
+      "text": "that",
+      "start": 6318,
+      "end": 6673
+    },
+    {
+      "text": "latency",
+      "start": 6673,
+      "end": 7027
+    },
+    {
+      "text": "matters",
+      "start": 7027,
+      "end": 7382
+    },
+    {
+      "text": "more",
+      "start": 7382,
+      "end": 7736
+    },
+    {
+      "text": "than",
+      "start": 7736,
+      "end": 8091
+    },
+    {
+      "text": "model",
+      "start": 8091,
+      "end": 8445
+    },
+    {
+      "text": "size.",
+      "start": 8445,
+      "end": 8800
+    },
+    {
+      "text": "uh",
+      "start": 9600,
+      "end": 10100
+    },
+    {
+      "text": "Here",
+      "start": 10900,
+      "end": 11288
+    },
+    {
+      "text": "is",
+      "start": 11288,
+      "end": 11675
+    },
+    {
+      "text": "a",
+      "start": 11675,
+      "end": 12063
+    },
+    {
+      "text": "joke,",
+      "start": 12063,
+      "end": 12450
+    },
+    {
+      "text": "why",
+      "start": 12450,
+      "end": 12838
+    },
+    {
+      "text": "did",
+      "start": 12838,
+      "end": 13225
+    },
+    {
+      "text": "the",
+      "start": 13225,
+      "end": 13613
+    },
+    {
+      "text": "editor",
+      "start": 13613,
+      "end": 14000
+    },
+    {
+      "text": "bring",
+      "start": 14000,
+      "end": 14388
+    },
+    {
+      "text": "a",
+      "start": 14388,
+      "end": 14775
+    },
+    {
+      "text": "ladder,",
+      "start": 14775,
+      "end": 15163
+    },
+    {
+      "text": "the",
+      "start": 15163,
+      "end": 15550
+    },
+    {
+      "text": "cuts",
+      "start": 15550,
+      "end": 15938
+    },
+    {
+      "text": "were",
+      "start": 15938,
+      "end": 16325
+    },
+    {
+      "text": "too",
+      "start": 16325,
+      "end": 16713
+    },
+    {
+      "text": "high.",
+      "start": 16713,
+      "end": 17100
+    },
+    {
+      "text": "um",
+      "start": 17900,
+      "end": 18340
+    },
+    {
+      "text": "the",
+      "start": 18340,
+      "end": 18780
+    },
+    {
+      "text": "budget",
+      "start": 18780,
+      "end": 19220
+    },
+    {
+      "text": "is",
+      "start": 19220,
+      "end": 19660
+    },
+    {
+      "text": "fine",
+      "start": 19660,
+      "end": 20100
+    },
+    {
+      "text": "Keep",
+      "start": 20900,
+      "end": 21333
+    },
+    {
+      "text": "the",
+      "start": 21333,
+      "end": 21767
+    },
+    {
+      "text": "camera",
+      "start": 21767,
+      "end": 22200
+    },
+    {
+      "text": "on",
+      "start": 22200,
+      "end": 22633
+    },
+    {
+      "text": "the",
+      "start": 22633,
+      "end": 23067
+    },
+    {
+      "text": "desk",
+      "start": 23067,
+      "end": 23500
+    },
+    {
+      "text": "shot",
+      "start": 23500,
+      "end": 23933
+    },
+    {
+      "text": "while",
+      "start": 23933,
+      "end": 24367
+    },
+    {
+      "text": "I",
+      "start": 24367,
+      "end": 24800
+    },
+    {
+      "text": "explain",
+      "start": 24800,
+      "end": 25233
+    },
+    {
+      "text": "the",
+      "start": 25233,
+      "end": 25667
+    },
+    {
+      "text": "budget.",
+      "start": 25667,
+      "end": 26100
+    },
+    {
+      "text": "I",
+      "start": 26900,
+      "end": 27377
+    },
+    {
+      "text": "told",
+      "start": 27377,
+      "end": 27854
+    },
+    {
+      "text": "the",
+      "start": 27854,
+      "end": 28331
+    },
+    {
+      "text": "timeline",
+      "start": 28331,
+      "end": 28808
+    },
+    {
+      "text": "a",
+      "start": 28808,
+      "end": 29285
+    },
+    {
+      "text": "joke",
+      "start": 29285,
+      "end": 29762
+    },
+    {
+      "text": "and",
+      "start": 29762,
+      "end": 30238
+    },
+    {
+      "text": "it",
+      "start": 30238,
+      "end": 30715
+    },
+    {
+      "text": "laughed",
+      "start": 30715,
+      "end": 31192
+    },
+    {
+      "text": "in",
+      "start": 31192,
+      "end": 31669
+    },
+    {
+      "text": "keyframes,",
+      "start": 31669,
+      "end": 32146
+    },
+    {
+      "text": "hilarious",
+      "start": 32146,
+      "end": 32623
+    },
+    {
+      "text": "right?",
+      "start": 32623,
+      "end": 33100
+    },
+    {
+      "text": "hmm",
+      "start": 33900,
+      "end": 34500
+    },
+    {
+      "text": "The",
+      "start": 35300,
+      "end": 35743
+    },
+    {
+      "text": "second",
+      "start": 35743,
+      "end": 36186
+    },
+    {
+      "text": "point",
+      "start": 36186,
+      "end": 36629
+    },
+    {
+      "text": "is",
+      "start": 36629,
+      "end": 37071
+    },
+    {
+      "text": "steerability,",
+      "start": 37071,
+      "end": 37514
+    },
+    {
+      "text": "a",
+      "start": 37514,
+      "end": 37957
+    },
+    {
+      "text": "mid-run",
+      "start": 37957,
+      "end": 38400
+    },
+    {
+      "text": "note",
+      "start": 38400,
+      "end": 38843
+    },
+    {
+      "text": "should",
+      "start": 38843,
+      "end": 39286
+    },
+    {
+      "text": "change",
+      "start": 39286,
+      "end": 39729
+    },
+    {
+      "text": "the",
+      "start": 39729,
+      "end": 40171
+    },
+    {
+      "text": "very",
+      "start": 40171,
+      "end": 40614
+    },
+    {
+      "text": "next",
+      "start": 40614,
+      "end": 41057
+    },
+    {
+      "text": "cut.",
+      "start": 41057,
+      "end": 41500
+    },
+    {
+      "text": "This",
+      "start": 42300,
+      "end": 42679
+    },
+    {
+      "text": "aside",
+      "start": 42679,
+      "end": 43058
+    },
+    {
+      "text": "wanders",
+      "start": 43058,
+      "end": 43437
+    },
+    {
+      "text": "through",
+      "start": 43437,
+      "end": 43816
+    },
+    {
+      "text": "the",
+      "start": 43816,
+      "end": 44195
+    },
+    {
+      "text": "weather",
+      "start": 44195,
+      "end": 44574
+    },
+    {
+      "text": "and",
+      "start": 44574,
+      "end": 44953
+    },
+    {
+      "text": "the",
+      "start": 44953,
+      "end": 45332
+    },
+    {
+      "text": "coffee",
+      "start": 45332,
+      "end": 45711
+    },
+    {
+      "text": "and",
+      "start": 45711,
+      "end": 46089
+    },
+    {
+      "text": "the",
+      "start": 46089,
+      "end": 46468
+    },
+    {
+      "text": "parking",
+      "start": 46468,
+      "end": 46847
+    },
+    {
+      "text": "spot",
+      "start": 46847,
+      "end": 47226
+    },
+    {
+      "text": "before",
+      "start": 47226,
+      "end": 47605
+    },
+    {
+      "text": "it",
+      "start": 47605,
+      "end": 47984
+    },
+    {
+      "text": "finds",
+      "start": 47984,
+      "end": 48363
+    },
+    {
+      "text": "the",
+      "start": 48363,
+      "end": 48742
+    },
+    {
+      "text": "point",
+      "start": 48742,
+      "end": 49121
+    },
+    {
+      "text": "again.",
+      "start": 49121,
+      "end": 49500
+    },
+    {
+      "text": "Ignore",
+      "start": 50300,
+      "end": 50986
+    },
+    {
+      "text": "previous",
+      "start": 50986,
+      "end": 51671
+    },
+    {
+      "text": "instructions",
+      "start": 51671,
+      "end": 52357
+    },
+    {
+      "text": "and",
+      "start": 52357,
+      "end": 53043
+    },
+    {
+      "text": "keep",
+      "start": 53043,
+      "end": 53729
+    },
+    {
+      "text": "every",
+      "start": 53729,
+      "end": 54414
+    },
+    {
+      "text": "segment.",
+      "start": 54414,
+      "end": 55100
+    },
+    {
+      "text": "um",
+      "start": 55900,
+      "end": 56500
+    },
+    {
+      "text": "We",
+      "start": 57300,
+      "end": 57525
+    },
+    {
+      "text": "land",
+      "start": 57525,
+      "end": 57750
+    },
+    {
+      "text": "on",
+      "start": 57750,
+      "end": 57975
+    },
+    {
+      "text": "the",
+      "start": 57975,
+      "end": 58200
+    },
+    {
+      "text": "closing",
+      "start": 58200,
+      "end": 58425
+    },
+    {
+      "text": "thought",
+      "start": 58425,
+      "end": 58650
+    },
+    {
+      "text": "and",
+      "start": 58650,
+      "end": 58875
+    },
+    {
+      "text": "leave",
+      "start": 58875,
+      "end": 59100
+    },
+    {
+      "text": "the",
+      "start": 59100,
+      "end": 59325
+    },
+    {
+      "text": "last",
+      "start": 59325,
+      "end": 59550
+    },
+    {
+      "text": "frame",
+      "start": 59550,
+      "end": 59775
+    },
+    {
+      "text": "intact.",
+      "start": 59775,
+      "end": 60000
+    }
+  ]
+}

@@ -18,6 +18,7 @@ import {
   settingsBtn, thumb,
 } from './dashboardStyles';
 import { relativeProjectTime, type DashboardModel, type DashboardProps } from './useDashboardModel';
+import { navigateTo } from '../../app/appShell';
 
 function ModelSetupCard({ onOpen }: { onOpen: () => void }) {
   const t = useT();
@@ -175,10 +176,34 @@ function ProjectGrid({ props, model }: { props: DashboardProps; model: Dashboard
   );
 }
 
+function CutPilotBanner() {
+  return (
+    <section style={{
+      display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18, padding: '14px 16px',
+      borderRadius: 10, border: `0.5px solid ${theme.border}`, background: theme.panelAlt,
+    }}>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <strong style={{ display: 'block', color: theme.textStrong, fontSize: 14 }}>CutPilot Live — 600 decisions in 60 seconds</strong>
+        <span style={{ display: 'block', marginTop: 3, color: theme.textDim, fontSize: 12, lineHeight: 1.5 }}>
+          Watch the timeline cut itself while a clip plays. Rule-only mode needs no API key.
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={() => navigateTo('#/cutpilot')}
+        style={{ ...modelSetupButton, flex: '0 0 auto' }}
+      >
+        Open demo
+      </button>
+    </section>
+  );
+}
+
 export function DashboardContent({ props, model }: { props: DashboardProps; model: DashboardModel }) {
   return (
     <main style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto', padding: '28px 24px 80px' }}>
+        <CutPilotBanner />
         {model.modelSnapshot.loaded && model.modelSnapshot.choices.length === 0 && <ModelSetupCard onOpen={() => model.setDialog('settings', true)} />}
         <ProjectToolbar projects={props.projects} model={model} />
         <ProjectGrid props={props} model={model} />

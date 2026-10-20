@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadInitialProjects, syncAgentBackends, type ProjectStartupSource } from './appShell';
+import { loadInitialProjects, parseAppHash, syncAgentBackends, type ProjectStartupSource } from './appShell';
 import { getActiveAgentModelChoice, getAgentModelSnapshot, subscribeAgentModels } from '../agent/model-selection';
 import type { ProjectMeta } from '../persist/projectStoreCoordinators';
 import { syncDesktopNativeInferenceEnabled } from '../transcript/desktop-inference-preference';
+
+assert.deepEqual(parseAppHash('#/cutpilot'), { name: 'cutpilot' });
+assert.deepEqual(parseAppHash('#/cutpilot/'), { name: 'cutpilot' });
+assert.deepEqual(parseAppHash('#/editor/abc%20d'), { name: 'editor', id: 'abc d' });
+assert.deepEqual(parseAppHash('#/'), { name: 'dashboard' });
 
 const demo = { id: 'demo', name: '示例工程', updatedAt: 1 };
 

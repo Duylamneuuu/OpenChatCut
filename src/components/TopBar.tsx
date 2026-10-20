@@ -6,6 +6,7 @@ import { GenerationActivity } from './GenerationActivity';
 import { SkinPicker } from './settings/SkinPicker';
 import { loadMcpGuideDialog } from './settings/mcpGuideLoader';
 import { ALL_LOCALES, getLocale, setLocale, useT } from '../i18n/locale';
+import { navigateTo } from '../app/appShell';
 import { invokeAction, bindAction } from '../shortcuts/actionRegistry';
 import { DesktopWindowControls } from './DesktopWindowControls';
 import { TopBarIconButton } from './TopBarIconButton';
@@ -100,6 +101,13 @@ export function TopBar({ projectId, projectName, canUndo, canRedo, exporting, ex
       <ExportHistory />
       <LocaleToggle />
       <TopBarIconButton icon="layoutPanel" label={t('切换面板布局')} onClick={() => invokeAction('toggle-layout', undefined, 'toolbar')} />
+      <button type="button" onClick={() => navigateTo('#/cutpilot')}
+        className="cc-tip cc-tip-r"
+        data-tip="CutPilot Live"
+        aria-label="Open CutPilot Live"
+        style={{ height: 26, background: 'none', color: theme.text, border: `0.5px solid ${theme.border}`, borderRadius: 2, padding: '0 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+        CutPilot
+      </button>
       <button onClick={() => invokeAction('open-export', undefined, 'toolbar')}
         className="cc-tip cc-tip-r"
         data-tip={exporting ? t('查看后台导出任务') : t('导出 MP4')}

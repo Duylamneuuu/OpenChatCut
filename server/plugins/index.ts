@@ -37,6 +37,7 @@ import { soundGenerationPlugin } from "./sound.ts";
 import { musicGenerationPlugin } from "./music.ts";
 import { videoGenerationPlugin } from "./video.ts";
 import { e2bPlugin } from "./e2b.ts";
+import { cutpilotPlugin } from "./cutpilot.ts";
 import { subtitleExportPlugin } from "./subtitles.ts";
 import { generationProgressPlugin } from "./generation-jobs.ts";
 import { stockSearchPlugin } from "./stock.ts";
@@ -359,6 +360,7 @@ export function serverPlugins(options: { projectStoreHttp?: boolean } = {}): Plu
         return getKey("FIRECRAWL_API_KEY");
       },
     }),
+    cutpilotPlugin(),
     e2bPlugin({
       get apiKey() {
         return getKey("E2B_API_KEY");
