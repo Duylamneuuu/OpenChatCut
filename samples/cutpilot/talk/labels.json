@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "clipId": "anne-gaylor-second-look",
+  "fps": 30,
+  "directive": "",
+  "about": "Single editorial pass on the whisper.cpp base.en transcript of the first 51.3 seconds of Anne Gaylor, A Second Look At Religion (AndrewFFRF, CC BY-SA 3.0). Not a multi-rater study. Rubric: cut silence slices the segmenter isolated (gaps of at least 400ms); keep spoken words, including a line longer than 7 seconds and ASR substitutions (Gayler, deans, through this rock), because this answer is one argument and a mid-clause trim would drop part of it; no trim, because no restart or repeated clause; no b-roll, because the frame is a locked interview and the words do not call a cutaway. This clip has no jokes.",
+  "labels": [
+    { "segmentId": "s000", "action": "keep", "text": "And Gayler is the founder and president of the National Freedom from Religion Foundation." },
+    { "segmentId": "s001", "action": "keep", "text": "And so much is being said today by the born-again about returning to the religion of the Founding Fathers and the religion of" },
+    { "segmentId": "s002", "action": "keep", "text": "our Constitution." },
+    { "segmentId": "s003", "action": "keep", "text": "What about that?" },
+    { "segmentId": "s004", "action": "keep", "text": "The born-agains are confusing" },
+    { "segmentId": "s005", "action": "cut", "text": "(silence)" },
+    { "segmentId": "s006", "action": "keep", "text": "history." },
+    { "segmentId": "s007", "action": "keep", "text": "What they're really talking about is through this rock." },
+    { "segmentId": "s008", "action": "keep", "text": "In the early" },
+    { "segmentId": "s009", "action": "cut", "text": "(silence)" },
+    { "segmentId": "s010", "action": "keep", "text": "1600s, they're forgetting" },
+    { "segmentId": "s011", "action": "cut", "text": "(silence)" },
+    { "segmentId": "s012", "action": "keep", "text": "that the writing of the Constitution was 1780s, the whole century and a half later." },
+    { "segmentId": "s013", "action": "keep", "text": "The Founding Fathers of our government were the people who wrote the Constitution and signed it." },
+    { "segmentId": "s014", "action": "keep", "text": "It made the most part." },
+    { "segmentId": "s015", "action": "keep", "text": "We're not Christians." },
+    { "segmentId": "s016", "action": "keep", "text": "They were deans." },
+    { "segmentId": "s017", "action": "keep", "text": "They had seen some very nasty state church entanglement in the colonies, and they" },
+    { "segmentId": "s018", "action": "cut", "text": "(silence)" },
+    { "segmentId": "s019", "action": "keep", "text": "wanted new part of it in the new government." }
+  ]
+}

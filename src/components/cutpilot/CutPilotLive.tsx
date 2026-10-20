@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { theme } from '../../theme.js';
 import { docFromTimeline, createProject } from '../../persist/projectStore.js';
 import { navigateTo } from '../../app/appShell.js';
@@ -9,6 +9,7 @@ import { formatClock, formatMs, formatUsd, liveMetrics } from '../../cutpilot/me
 import { fetchCutPilotConfig } from '../../cutpilot/providers/remote.js';
 import { repeatSegments } from '../../cutpilot/segmenter.js';
 import { SAMPLE_DURATION_MS, SAMPLE_MEDIA_SRC, sampleSegments } from '../../cutpilot/sample.js';
+import { TALK_DURATION_MS, TALK_MEDIA_SRC, talkSegments } from '../../cutpilot/talk-clip.js';
 import { createSession, stepSession, type CutSession } from '../../cutpilot/session.js';
 import type { CutAction, LoggedDecision } from '../../cutpilot/types.js';
 import { providersFor } from '../../cutpilot/ui-providers.js';
@@ -66,23 +67,32 @@ function download(filename: string, contents: string, type: string): void {
   URL.revokeObjectURL(url);
 }
 
-function freshSession(sprint: boolean, directive: string, base: ReturnType<typeof sampleSegments>): CutSession {
-  const segments = sprint ? repeatSegments(base, 600) : base;
+type DemoClipId = 'talk' | 'stand-in';
+
+function clipSource(id: DemoClipId): { segments: ReturnType<typeof sampleSegments>; durationMs: number; src: string } {
+  if (id === 'talk') return { segments: talkSegments(), durationMs: TALK_DURATION_MS, src: TALK_MEDIA_SRC };
+  return { segments: sampleSegments(), durationMs: SAMPLE_DURATION_MS, src: SAMPLE_MEDIA_SRC };
+}
+
+function freshSession(sprint: boolean, directive: string, clip: DemoClipId): CutSession {
+  const source = clipSource(clip);
+  const segments = sprint ? repeatSegments(source.segments, 600) : source.segments;
   return createSession(segments, {
-    mediaDurationMs: SAMPLE_DURATION_MS,
-    src: SAMPLE_MEDIA_SRC,
+    mediaDurationMs: source.durationMs,
+    src: source.src,
     directive,
   });
 }
 
 export function CutPilotLive({ onHome }: { onHome: () => void }) {
-  const baseSegments = useMemo(() => sampleSegments(), []);
+  const [clipId, setClipId] = useState<DemoClipId>('talk');
+  const clipRef = useRef(clipId);
   const videoRef = useRef<HTMLVideoElement>(null);
   const playheadRef = useRef<HTMLDivElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const [sprint, setSprint] = useState(false);
   const sprintRef = useRef(false);
-  const [session, setSession] = useState<CutSession>(() => freshSession(false, '', baseSegments));
+  const [session, setSession] = useState<CutSession>(() => freshSession(false, '', 'talk'));
   const sessionRef = useRef(session);
   const [running, setRunning] = useState(false);
   const [directive, setDirective] = useState('');
@@ -100,6 +110,7 @@ export function CutPilotLive({ onHome }: { onHome: () => void }) {
   const speechRef = useRef<SpeechRec | null>(null);
 
   sessionRef.current = session;
+  clipRef.current = clipId;
   directiveRef.current = directive;
   providerRef.current = providerId;
   configRef.current = config;
@@ -219,7 +230,7 @@ export function CutPilotLive({ onHome }: { onHome: () => void }) {
     }
     let next = sessionRef.current;
     if (reset || next.cursor >= next.segments.length) {
-      next = freshSession(sprint, directive, baseSegments);
+      next = freshSession(sprint, directive, clipRef.current);
       sessionRef.current = next;
       setSession(next);
       setGhosts([]);
@@ -252,7 +263,7 @@ export function CutPilotLive({ onHome }: { onHome: () => void }) {
     pause();
     speechRef.current?.stop();
     setListening(false);
-    const next = freshSession(sprint, directive, baseSegments);
+    const next = freshSession(sprint, directive, clipRef.current);
     sessionRef.current = next;
     setSession(next);
     setGhosts([]);
@@ -307,10 +318,13 @@ export function CutPilotLive({ onHome }: { onHome: () => void }) {
   const dense = session.segments.length > 80;
   const clockEnd = session.segments.length
     ? session.segments[session.segments.length - 1]!.endMs
-    : SAMPLE_DURATION_MS;
-  const hint = !directive && (videoRef.current?.currentTime ?? 0) >= 30
-    ? 'Try a mid-run note: keep the jokes, slower pace'
+    : clipSource(clipId).durationMs;
+  const hint = !directive && (videoRef.current?.currentTime ?? 0) >= 18
+    ? (clipId === 'stand-in'
+      ? 'Try a mid-run note: keep the jokes, slower pace'
+      : 'Try a mid-run note: slower pace, or tighter, cut fillers')
     : null;
+  const preview = clipSource(clipId);
 
   return (
     <div style={{ height: '100vh', display: 'grid', gridTemplateRows: '48px minmax(0, 1fr) auto', background: theme.bg, color: theme.text, fontFamily: 'Geist, system-ui, sans-serif' }}>
@@ -326,6 +340,30 @@ export function CutPilotLive({ onHome }: { onHome: () => void }) {
           <span style={{ fontSize: 11, color: theme.textDim }}>600 decisions in 60 seconds</span>
         </div>
         <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: theme.textDim }}>
+          Clip
+          <select
+            aria-label="Demo clip"
+            value={clipId}
+            disabled={running}
+            onChange={(event) => {
+              const nextId = event.target.value as DemoClipId;
+              setClipId(nextId);
+              const next = freshSession(sprint, directive, nextId);
+              sessionRef.current = next;
+              setSession(next);
+              setGhosts([]);
+              setScale(spanFrames(next.timeline));
+              wallStart.current = null;
+              setBanner(null);
+              if (videoRef.current) videoRef.current.currentTime = 0;
+            }}
+            style={selectStyle}
+          >
+            <option value="talk">Anne Gaylor interview</option>
+            <option value="stand-in">Captioned stand-in</option>
+          </select>
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: theme.textDim }}>
           Provider
           <select
             aria-label="Decision provider"
@@ -348,8 +386,9 @@ export function CutPilotLive({ onHome }: { onHome: () => void }) {
       <div className="cutpilot-body">
         <section style={column}>
           <video
+            key={preview.src}
             ref={videoRef}
-            src={SAMPLE_MEDIA_SRC}
+            src={preview.src}
             playsInline
             muted
             controls
@@ -362,6 +401,11 @@ export function CutPilotLive({ onHome }: { onHome: () => void }) {
             }}
             style={{ width: '100%', background: '#000', borderRadius: 8, aspectRatio: '16 / 9' }}
           />
+          {clipId === 'talk' && (
+            <p style={{ margin: 0, fontSize: 11, color: theme.textDim, lineHeight: 1.4 }}>
+              Anne Gaylor, “A Second Look At Religion.” AndrewFFRF, CC BY-SA 3.0, Wikimedia Commons. First 51.3 seconds.
+            </p>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }} aria-live="polite">
             <Stat label="Decisions / sec" value={session.decisions.length ? metrics.perSecond.toFixed(1) : '0.0'} />
             <Stat label="Decisions" value={String(metrics.count)} />

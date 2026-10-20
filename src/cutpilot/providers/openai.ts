@@ -57,27 +57,64 @@ function choiceFrom(value: unknown): string | undefined {
   return undefined;
 }
 
-/** Best-effort reader for a TypeSafe-style /v1/systemone payload. */
+function unitInterval(value: unknown): number | undefined {
+  const score = Number(value);
+  if (!Number.isFinite(score)) return undefined;
+  return Math.min(1, Math.max(0, score > 1 ? score / 100 : score));
+}
+
+interface SystemAnswer {
+  id: string;
+  row: Record<string, unknown>;
+}
+
+/** Liquid d1 returns `answers` as an object keyed by question id. Older payloads use an array. */
+function systemAnswers(payload: Record<string, unknown>): SystemAnswer[] {
+  const raw = payload.answers ?? payload.results ?? payload.output;
+  if (Array.isArray(raw)) {
+    return raw.flatMap((answer) => {
+      if (!answer || typeof answer !== 'object') return [];
+      const row = answer as Record<string, unknown>;
+      return [{ id: String(row.id ?? row.question ?? row.name ?? '').toLowerCase(), row }];
+    });
+  }
+  if (raw && typeof raw === 'object') {
+    return Object.entries(raw).flatMap(([id, value]) => {
+      if (value && typeof value === 'object') return [{ id: id.toLowerCase(), row: value as Record<string, unknown> }];
+      return [{ id: id.toLowerCase(), row: { answer: value } }];
+    });
+  }
+  return [];
+}
+
+/** Best-effort reader for a /v1/systemone payload, including Liquid d1's object form. */
 export function parseSystemOne(payload: unknown): Omit<ProviderOutput, 'modelMs' | 'networkMs' | 'upstreamUnsplit'> {
-  if (payload && typeof payload === 'object' && 'action' in payload) {
+  if (payload && typeof payload === 'object' && 'action' in payload && !('answers' in payload)) {
     return parseDecisionJson(JSON.stringify(payload));
   }
   const record = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
-  const answers = Array.isArray(record.answers) ? record.answers
-    : Array.isArray(record.results) ? record.results
-      : Array.isArray(record.output) ? record.output
-        : [];
   let action: string | undefined;
   let confidence: number | undefined;
+  let zoom = false;
   let reason = 'systemone decision';
-  for (const answer of answers) {
-    if (!answer || typeof answer !== 'object') continue;
-    const row = answer as Record<string, unknown>;
-    const id = String(row.id ?? row.question ?? row.name ?? '').toLowerCase();
-    if (id.includes('action') || id === 'choice') action = choiceFrom(row.choice ?? row.answer ?? row)?.toLowerCase();
+  for (const { id, row } of systemAnswers(record)) {
+    if (id.includes('action') || id === 'choice') {
+      action = choiceFrom(row.choice ?? row.answer ?? row)?.toLowerCase();
+      const fromField = unitInterval(row.confidence);
+      if (fromField !== undefined) confidence = fromField;
+      else if (row.probabilities && typeof row.probabilities === 'object') {
+        const probs = Object.values(row.probabilities as Record<string, unknown>).map((value) => Number(value)).filter((value) => Number.isFinite(value));
+        if (probs.length) confidence = Math.min(1, Math.max(0, Math.max(...probs)));
+      }
+      if (typeof row.choice === 'string') reason = `systemone ${row.choice}`;
+    }
+    if (id.includes('zoom')) {
+      const noul = Number(row.noul ?? row.probability ?? row.score ?? row.answer);
+      if (Number.isFinite(noul)) zoom = noul >= 0.5;
+    }
     if (id.includes('confidence') || id.includes('score') || row.type === 'score') {
-      const score = Number(row.score ?? row.probability ?? row.value ?? row.answer);
-      if (Number.isFinite(score)) confidence = score > 1 ? score / 100 : score;
+      const score = unitInterval(row.score ?? row.probability ?? row.value ?? row.answer);
+      if (score !== undefined && confidence === undefined) confidence = score;
     }
     if (!action) {
       const guessed = choiceFrom(row);
@@ -87,9 +124,9 @@ export function parseSystemOne(payload: unknown): Omit<ProviderOutput, 'modelMs'
   if (!isCutAction(action)) throw new Error('systemone response had no cut/keep/trim/broll choice');
   return {
     action,
-    confidence: confidence === undefined ? 0.5 : Math.min(1, Math.max(0, confidence)),
+    confidence: confidence === undefined ? 0.5 : confidence,
     reason,
-    zoom: false,
+    zoom,
   };
 }
 
@@ -100,14 +137,35 @@ export function decisionUrl(baseUrl: string, protocol: DecisionProtocol): string
   return protocol === 'systemone' ? `${prefix}/systemone` : `${prefix}/chat/completions`;
 }
 
-function systemOneBody(state: DecisionState, model: string): string {
+/**
+ * Liquid d1's published /v1/systemone body.
+ * One question only: llama.cpp b11756 segfaults when a systemone request
+ * contains two questions and the server is running with the default parallel
+ * slot count. Zoom stays a rule-provider behavior.
+ */
+export function systemOneBody(state: DecisionState): string {
+  const recent = state.prev.map((row) => `${row.segmentId} ${row.action}`).join('; ') || 'none';
+  const text = [
+    `Segment ${state.segmentId} (${state.index + 1}).`,
+    `Spoken text: ${state.text || '(silence)'}`,
+    `Duration ${Math.round(state.durationMs)} ms. Silence inside ${Math.round(state.silenceMs)} ms. Gap before ${Math.round(state.gapBeforeMs)} ms.`,
+    `Editor directive: ${state.directive.trim() || '(none)'}`,
+    `Recent decisions: ${recent}`,
+  ].join('\n');
   return JSON.stringify({
-    model,
-    state: JSON.stringify(state),
-    questions: [
-      { id: 'action', type: 'choice', prompt: 'Edit action for this segment', choices: ['keep', 'cut', 'trim', 'broll'] },
-      { id: 'confidence', type: 'score', prompt: 'Confidence from 0 to 1' },
-    ],
+    state: text,
+    questions: {
+      action: {
+        type: 'choice',
+        instructions: 'Pick the edit for this slice. When the editor directive conflicts with a default, follow the directive.',
+        criteria: {
+          keep: 'Speech, including a joke, that the edit should keep.',
+          cut: 'Silence, filler, a false start, or anything the directive says to drop.',
+          trim: 'A spoken line that runs long and should be shortened.',
+          broll: 'Speech that stays, covered by a cutaway.',
+        },
+      },
+    },
   });
 }
 
@@ -137,7 +195,7 @@ export function createOpenAiProvider(options: OpenAiProviderOptions): DecisionPr
       if (options.apiKey) headers.authorization = `Bearer ${options.apiKey}`;
       const url = decisionUrl(options.baseUrl, protocol);
       const body = protocol === 'systemone'
-        ? systemOneBody(state, options.model)
+        ? systemOneBody(state)
         : JSON.stringify({
           model: options.model,
           temperature: 0,

@@ -69,8 +69,10 @@ function asState(value: unknown): DecisionState | null {
   };
 }
 
-function endpointProvider(id: string, endpoint: EndpointConfig, fetchImpl: typeof fetch): DecisionProvider {
-  return createOpenAiProvider({ ...endpoint, id, fetchImpl });
+function endpointProvider(id: string, endpoint: EndpointConfig, fetchImpl: typeof fetch, env: Record<string, string | undefined>): DecisionProvider {
+  const timeoutRaw = Number(env.CUTPILOT_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(timeoutRaw) && timeoutRaw > 0 ? timeoutRaw : undefined;
+  return createOpenAiProvider({ ...endpoint, id, fetchImpl, timeoutMs });
 }
 
 export async function dispatchCutpilot(
@@ -79,7 +81,8 @@ export async function dispatchCutpilot(
   body: unknown,
   deps: CutpilotDeps = {},
 ): Promise<{ status: number; payload: unknown }> {
-  const config: CutPilotEnvConfig = configFromEnv(resolveEnv(deps));
+  const env = resolveEnv(deps);
+  const config: CutPilotEnvConfig = configFromEnv(env);
   if (method === 'GET' && pathname.endsWith('/config')) {
     return { status: 200, payload: publicConfig(config) };
   }
@@ -99,16 +102,16 @@ export async function dispatchCutpilot(
   if (which === 'rule') primary = createRuleProvider();
   else if (which === 'escalation') {
     if (!config.escalation) return { status: 400, payload: { error: 'CUTPILOT_ESCALATION_BASE_URL is not set' } };
-    primary = endpointProvider('escalation', config.escalation, fetchImpl);
+    primary = endpointProvider('escalation', config.escalation, fetchImpl, env);
   } else if (which === 'local') {
     if (!config.local) return { status: 400, payload: { error: 'CUTPILOT_LOCAL_BASE_URL is not set' } };
-    primary = endpointProvider('local', config.local, fetchImpl);
+    primary = endpointProvider('local', config.local, fetchImpl, env);
   } else {
     if (!config.hosted) return { status: 400, payload: { error: 'CUTPILOT_HOSTED_BASE_URL is not set' } };
-    primary = endpointProvider('hosted', config.hosted, fetchImpl);
+    primary = endpointProvider('hosted', config.hosted, fetchImpl, env);
   }
   if (which !== 'escalation' && record.escalate !== false && config.escalation) {
-    escalation = endpointProvider('escalation', config.escalation, fetchImpl);
+    escalation = endpointProvider('escalation', config.escalation, fetchImpl, env);
   }
   try {
     const decided = await decideWithEscalation(primary, escalation, state, config.threshold);

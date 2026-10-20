@@ -26,9 +26,9 @@ import type { LabelFile } from '../src/cutpilot/types.ts';
 const { values } = parseArgs({
   options: {
     providers: { type: 'string', default: '' },
-    labels: { type: 'string', default: 'samples/cutpilot/labels.sample.json' },
-    transcript: { type: 'string', default: 'samples/cutpilot/transcript.json' },
-    video: { type: 'string', default: 'public/cutpilot/sample.mp4' },
+    labels: { type: 'string', default: 'samples/cutpilot/talk/labels.json' },
+    transcript: { type: 'string', default: 'samples/cutpilot/talk/transcript.json' },
+    video: { type: 'string', default: 'public/cutpilot/talk.mp4' },
     directive: { type: 'string', default: '' },
     steer: { type: 'boolean', default: false },
     transcribe: { type: 'boolean', default: false },
@@ -48,7 +48,9 @@ function providerById(id: CutPilotProviderId | 'escalation'): { provider: Decisi
     const name = id === 'local' ? 'CUTPILOT_LOCAL_BASE_URL' : id === 'hosted' ? 'CUTPILOT_HOSTED_BASE_URL' : 'CUTPILOT_ESCALATION_BASE_URL';
     return { provider: createRuleProvider(), skip: `${id} skipped: set ${name}` };
   }
-  return { provider: createOpenAiProvider({ ...endpoint, id }) };
+  const timeoutRaw = Number(env.CUTPILOT_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(timeoutRaw) && timeoutRaw > 0 ? timeoutRaw : undefined;
+  return { provider: createOpenAiProvider({ ...endpoint, id, timeoutMs }) };
 }
 
 const requested = (values.providers || [config.provider, 'rule'].filter((id, index, all) => all.indexOf(id) === index).join(','))

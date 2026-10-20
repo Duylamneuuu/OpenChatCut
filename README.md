@@ -318,7 +318,9 @@ CutPilot Live is a demo mode inside the editor: while a clip plays, a decision l
 
 Rule-only mode is the default. It needs no API key and no GPU. Local and hosted providers are optional OpenAI-compatible endpoints. A decision is sent to the stronger endpoint only when its confidence is below `CUTPILOT_CONFIDENCE_THRESHOLD` (default `0.6`). Keys stay in the server process.
 
-The bundled sample is a 60-second captioned stand-in, not a recorded talking head. Its transcript is hand-aligned to the captions. **Sprint 600** replays those slices until 600 decisions have been made, one every 100 ms, so the counter can reach 600 decisions in about a minute. The default live pass follows the preview clock instead, which is the one that shows cuts landing on the picture.
+The demo opens on a real interview excerpt: the first 51.3 seconds of **Anne Gaylor, “A Second Look At Religion”** (AndrewFFRF, 1980s interview, [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Anne_Gaylor_clip_-_A_Second_Look_At_Religion.webm), [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)). The file in the repo is a trim and an H.264 re-encode; the credit is in `public/cutpilot/ATTRIBUTION.txt`. A captioned 60-second stand-in is still in the clip menu. That stand-in is where “keep the jokes” has joke slices to flip. The interview does not contain a joke.
+
+**Sprint 600** replays the selected clip’s slices until 600 decisions have been made, one every 100 ms, so the counter can reach 600 decisions in about a minute. The default live pass follows the preview clock instead, which is the one that shows cuts landing on the picture.
 
 Type or speak a note while a run is in progress (`keep the jokes`, `slower pace`, `add b-roll on the desk shot`). The next slice uses the new note. On Windows, speech input depends on the browser's Web Speech API; typing always works.
 
@@ -341,16 +343,17 @@ $env:FFPROBE_PATH = "C:\ffmpeg\bin\ffprobe.exe"
 
 Then open `http://localhost:5199`, choose **Open demo**, leave the provider on **Rule only**, and press **Run**. No key is required.
 
-Optional local model (llama.cpp `llama-server`, any small GGUF, including a Liquid d1-3B build if you have one):
+Optional local model. Liquid d1-3B is a decision model: one forward pass, no generated tokens, served by a llama.cpp build that knows the `lfm2-d1` architecture (llama.cpp `b11756` / 0.7.0-dev or newer). The Q4_K_M GGUF is the file this repo was measured with.
 
 ```powershell
-llama-server -m C:\models\liquid-d1-3b.gguf --port 8080
+llama-server -m C:\models\d1-3B-Q4_K_M.gguf --port 8080 -np 1
 $env:CUTPILOT_LOCAL_BASE_URL = "http://127.0.0.1:8080"
-$env:CUTPILOT_LOCAL_MODEL = "liquid-d1-3b"
+$env:CUTPILOT_LOCAL_MODEL = "LiquidAI/d1-3B-Q4_K_M"
+$env:CUTPILOT_LOCAL_PROTOCOL = "systemone"
 $env:CUTPILOT_PROVIDER = "local"
 ```
 
-`CUTPILOT_LOCAL_PROTOCOL=systemone` posts to `/v1/systemone` instead of chat completions. A base URL may be an origin (`http://127.0.0.1:8080`) or a prefix that already ends in `/v1`.
+`CUTPILOT_LOCAL_PROTOCOL=systemone` posts one choice question to `/v1/systemone` (keep, cut, trim, or b-roll, with criteria). A base URL may be an origin (`http://127.0.0.1:8080`) or a prefix that already ends in `/v1`. llama.cpp `b11756` segfaults when one systemone request contains two questions and `--parallel` is left at its default. CutPilot sends a single question so the default server stays up. `-np 1` is the safe flag if you experiment with more than one question. `CUTPILOT_TIMEOUT_MS` raises the per-decision wait (the default is 15 seconds; a cold CPU pass can need longer).
 
 Optional hosted model (OpenRouter, Gemini's OpenAI-compatible endpoint, or any other chat-completions server):
 
@@ -371,14 +374,44 @@ The harness runs one labeled clip through each provider you name and prints meas
 ```powershell
 npm run cutpilot:bench
 npm run cutpilot:bench -- --providers rule,local,hosted --steer
-npx tsx scripts/cutpilot-benchmark.ts --labels samples/cutpilot/labels.sample.json --transcript samples/cutpilot/transcript.json
+npx tsx scripts/cutpilot-benchmark.ts --labels samples/cutpilot/labels.sample.json --transcript samples/cutpilot/transcript.json --video public/cutpilot/sample.mp4
 ```
+
+`npm run cutpilot:bench` scores the Anne Gaylor excerpt (`samples/cutpilot/talk/`). The stand-in paths above are the scripted joke clip.
 
 `--steer` runs the clip twice and counts joke slices that flip from cut to keep after `keep the jokes, slower pace`. `--sprint` repeats the clip to 600 decisions and does not score labels. `--transcribe` replaces the transcript only when `CUTPILOT_WHISPER_CMD` or `CUTPILOT_WHISPER_MODEL` is set. `--apply-scenes` splits slices on ffmpeg scene cuts; the bundled labels will no longer match, so the script says so and skips the score.
 
 Remote calls are reported as one upstream wait. Unless the endpoint itself separates compute from transport, **model milliseconds stay 0 and network milliseconds are the full round trip**. The rule provider is the opposite: model time is in-process and network time is 0. Executor time is the timeline reducer. Cost per 1,000 decisions is the mean of priced calls; missing prices print `not configured`.
 
-`samples/cutpilot/labels.sample.json` is a tiny format example. It was produced by the rule baseline on `samples/cutpilot/transcript.json` with an empty directive. Agreement against that file restates the rubric. It is not a human-labeled set and not a published accuracy number. Replace it with your own labels before reading F1 as quality.
+`samples/cutpilot/labels.sample.json` is a tiny format example. It was produced by the rule baseline on `samples/cutpilot/transcript.json` with an empty directive. Agreement against that file restates the rubric. It is not a human-labeled set.
+
+`samples/cutpilot/talk/labels.json` is one editorial pass on the interview transcript, not a multi-rater study. The rubric is in that file’s `about` field: cut the silence slices, keep the spoken argument (including the line longer than 7 seconds and the ASR substitutions), no trim, no b-roll. The words are whisper.cpp `base.en` with subword pieces joined. The stdout of the measured run is `samples/cutpilot/talk/benchmark-log.txt`.
+
+#### Measured benchmark (2026-10-20)
+
+Machine: Linux x86_64, 4 threads, no GPU. Local server: llama.cpp 0.7.0-dev build 11756, `llama-server -m d1-3B-Q4_K_M.gguf -c 2048 -t 4 -ngl 0 -np 1`, protocol `systemone`. Command: `npm run cutpilot:bench -- --providers rule,local,hosted --steer`. Hosted was not called. No OpenRouter, Gemini, Google, OpenAI, Groq, or Hugging Face key was set in the environment.
+
+| Provider | Agreement | Macro F1 | Cut F1 | Chain-20 | Latency p50 / p95 / p99 (ms) | Model p50 / p95 / p99 | Network p50 / p95 / p99 | Executor p50 / p95 / p99 | USD / 1000 |
+| --- | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- |
+| rule | 0.950 | 0.656 | 1.000 | 0.000 | 0.02 / 0.97 / 1.40 | 0.01 / 0.20 / 0.41 | 0.00 / 0.00 / 0.00 | 0.01 / 0.77 / 0.99 | 0.000000 |
+| local, Liquid d1-3B Q4_K_M | 0.200 | 0.190 | 0.571 | 0.000 | 905.56 / 1044.97 / 1056.91 | 0.00 / 0.00 / 0.00 | 905.48 / 1044.89 / 1056.79 | 0.10 / 0.15 / 0.38 | not configured |
+| hosted | skipped | | | | | | | | |
+
+The rule row’s dollar figure is the in-process price of 0. The local row is unpriced: no `CUTPILOT_LOCAL_USD_PER_1K` was set, and the endpoint does not split compute from transport, so model milliseconds stay 0 and network milliseconds are the full round trip. Wall time for the 20 local decisions was 18331 ms.
+
+The rule pass matched 19 of 20 labels. The miss is `s001`, which the rubric keeps and the rule trims because the slice is longer than 7 seconds. That single trim is why macro F1 is 0.656 (the trim class scores 0) and why chain-20 is 0 (the only 20-decision window contains the miss). Cut F1 is 1.000. Steerability was `0/0`: the interview has no joke slice, so “keep the jokes” had nothing to flip.
+
+A second pass of the same server, same prompt, printed the local actions. They were 8 trim and 12 cut, and 0 keep. The 4 matches are the silence slices. The 16 speech misses had confidence from 0.11 to 0.57, under the 0.6 escalation threshold. No hosted endpoint was configured, so those low-confidence answers were not handed off.
+
+#### Launch film
+
+`promo/` is a Remotion composition, “Introducing CutPilot Live”, 36 seconds at 1920×1080. It uses the repo’s existing `remotion`, `@remotion/bundler`, and `@remotion/renderer` packages (there is no separate Remotion CLI dependency).
+
+```powershell
+npm run cutpilot:promo
+```
+
+That writes `/opt/cursor/artifacts/cutpilot-promo.mp4` and a poster still at frame 1040, `/opt/cursor/artifacts/cutpilot-promo-poster.png`. Override the paths with `CUTPILOT_PROMO_OUT` and `CUTPILOT_PROMO_POSTER`. Chrome is `CC_BROWSER_EXECUTABLE`, or `/opt/google/chrome/chrome` when that binary is present. `node scripts/render-cutpilot-promo.mjs --stills 108,420,920` writes preview frames under `/tmp`.
 
 ```json
 {

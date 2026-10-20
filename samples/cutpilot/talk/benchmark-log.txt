@@ -1,0 +1,41 @@
+Measured 2026-10-20 on Linux x86_64, 4 threads, no GPU.
+Local server: llama.cpp 0.7.0-dev build 11756
+  llama-server -m d1-3B-Q4_K_M.gguf --host 127.0.0.1 --port 8091 -c 2048 -t 4 -ngl 0 -np 1
+Environment: CUTPILOT_LOCAL_BASE_URL=http://127.0.0.1:8091
+  CUTPILOT_LOCAL_MODEL=LiquidAI/d1-3B-Q4_K_M
+  CUTPILOT_LOCAL_PROTOCOL=systemone
+  CUTPILOT_TIMEOUT_MS=60000
+Command: npm run cutpilot:bench -- --providers rule,local,hosted --steer
+Hosted was not called. No hosted API key was set.
+
+> openchatcut@0.2.16 cutpilot:bench
+> tsx scripts/cutpilot-benchmark.ts --providers rule,local,hosted --steer
+
+ffmpeg probe: /workspace/public/cutpilot/talk.mp4 51318 ms
+ffmpeg audio: extracted /tmp/cutpilot-i7E6tG/audio.wav
+ffmpeg scenes: 0 cuts
+
+provider: rule (wall 5 ms, 20 decisions)
+decisions: 20/20 labeled matched
+agreement: 0.950
+macro F1: 0.656    cut F1: 1.000    chain-20: 0.000
+latency ms  p50 0.02  p95 0.97  p99 1.40
+model ms    p50 0.01  p95 0.20  p99 0.41
+network ms  p50 0.00  p95 0.00  p99 0.00
+executor ms p50 0.01  p95 0.77  p99 0.99
+usd / 1000 decisions: 0.000000
+steerability: 0/0 joke slices flipped from cut to keep after "keep the jokes, slower pace"
+
+provider: local (wall 18331 ms, 20 decisions)
+decisions: 20/20 labeled matched
+agreement: 0.200
+macro F1: 0.190    cut F1: 0.571    chain-20: 0.000
+latency ms  p50 905.56  p95 1044.97  p99 1056.91
+model ms    p50 0.00  p95 0.00  p99 0.00
+network ms  p50 905.48  p95 1044.89  p99 1056.79
+executor ms p50 0.10  p95 0.15  p99 0.38
+usd / 1000 decisions: not configured (20 unpriced)
+note: model compute was not reported separately; network ms is the full upstream round trip and model ms is 0.
+steerability: 0/0 joke slices flipped from cut to keep after "keep the jokes, slower pace"
+
+hosted skipped: set CUTPILOT_HOSTED_BASE_URL

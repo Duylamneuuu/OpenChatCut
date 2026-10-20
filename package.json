@@ -55,6 +55,7 @@
     "test": "node scripts/run-tests.mjs",
     "cutpilot:sample": "tsx scripts/cutpilot-sample-media.ts",
     "cutpilot:bench": "tsx scripts/cutpilot-benchmark.ts",
+    "cutpilot:promo": "node scripts/render-cutpilot-promo.mjs",
     "occ": "tsx cli/main.ts",
     "build:cli": "node scripts/build-cli.mjs",
     "verify:cli": "tsx cli/cli.verify.ts",

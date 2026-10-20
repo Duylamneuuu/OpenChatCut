@@ -12,7 +12,7 @@ import { percentiles, percentileTriple } from './metrics.ts';
 import { probeDurationMs } from './node/prepare.ts';
 import { parseScenePts } from './node/prepare.ts';
 import { decisionCostUsd, decideWithEscalation } from './providers/escalate.ts';
-import { createOpenAiProvider, decisionUrl, parseDecisionJson, parseSystemOne } from './providers/openai.ts';
+import { createOpenAiProvider, decisionUrl, parseDecisionJson, parseSystemOne, systemOneBody } from './providers/openai.ts';
 import { createRuleProvider } from './providers/rule-provider.ts';
 import { directiveFlags, isJoke } from './providers/rule.ts';
 import { repeatSegments, splitSegmentsAtScenes } from './segmenter.ts';
@@ -238,6 +238,22 @@ const system = parseSystemOne({
 });
 assert.equal(system.action, 'cut');
 assert.equal(system.confidence, 0.42);
+const liquid = parseSystemOne({
+  answers: {
+    action: {
+      type: 'choice',
+      choice: 'broll',
+      probabilities: { keep: 0.04, cut: 0.05, trim: 0.07, broll: 0.84 },
+      confidence: 0.81,
+    },
+    zoom: { type: 'noul', noul: 0.72 },
+  },
+});
+assert.equal(liquid.action, 'broll');
+assert.equal(liquid.confidence, 0.81);
+assert.equal(liquid.zoom, true);
+const liquidBody = JSON.parse(systemOneBody(state)) as { questions: { action: { criteria: { keep: string } } } };
+assert.equal(liquidBody.questions.action.criteria.keep.includes('joke'), true);
 
 const calls: Array<{ url: string; authorization?: string; body: string }> = [];
 const remote = createOpenAiProvider({

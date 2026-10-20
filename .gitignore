@@ -29,6 +29,7 @@ test-results/
 *.orig
 *.rej
 /.cache/
+/promo/fonts.ts
 /.tmp/
 /tmp/
 /temp/
@@ -93,6 +94,7 @@ MODEL-OPT-PLAN.md
 !/scripts/*.verify.mjs
 !/scripts/cutpilot-benchmark.ts
 !/scripts/cutpilot-sample-media.ts
+!/scripts/render-cutpilot-promo.mjs
 
 # Local marketing assets and drafts
 /marketing/

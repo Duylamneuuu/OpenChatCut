@@ -1,0 +1,12 @@
+Anne Gaylor clip — A Second Look At Religion
+
+Author: AndrewFFRF
+Source page: https://commons.wikimedia.org/wiki/File:Anne_Gaylor_clip_-_A_Second_Look_At_Religion.webm
+Also published at: https://www.youtube.com/watch?v=2dAzKukRrqg
+License: Creative Commons Attribution-ShareAlike 3.0 Unported
+https://creativecommons.org/licenses/by-sa/3.0/
+
+talk.mp4 is the first 51.3 seconds of that interview, re-encoded to H.264/AAC.
+The excerpt stays under CC BY-SA 3.0. The trim and the re-encode are the only changes to the picture.
+talk-still.jpg is one frame from that excerpt, under the same license.
+The transcript beside the benchmark was produced by whisper.cpp base.en; it is not an official caption track.
