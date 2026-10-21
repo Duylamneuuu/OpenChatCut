@@ -1,0 +1,61 @@
+{
+  "sampleRate": 24000,
+  "cues": [
+    {
+      "startFrame": 81,
+      "endFrame": 150,
+      "seconds": 1.73,
+      "text": "Editing has always waited for you.",
+      "voice": "af_heart",
+      "speed": 0.93
+    },
+    {
+      "startFrame": 156,
+      "endFrame": 240,
+      "seconds": 1.583,
+      "text": "What if the timeline cut itself?",
+      "voice": "af_heart",
+      "speed": 0.93
+    },
+    {
+      "startFrame": 248,
+      "endFrame": 360,
+      "seconds": 2.672,
+      "text": "CutPilot Live makes every cut in real time.",
+      "voice": "af_heart",
+      "speed": 0.93
+    },
+    {
+      "startFrame": 366,
+      "endFrame": 480,
+      "seconds": 2.43,
+      "text": "Every decision, logged, with confidence.",
+      "voice": "af_heart",
+      "speed": 0.93
+    },
+    {
+      "startFrame": 486,
+      "endFrame": 600,
+      "seconds": 2.437,
+      "text": "Steer it mid-flight. Tell it to keep the jokes.",
+      "voice": "af_heart",
+      "speed": 0.93
+    },
+    {
+      "startFrame": 606,
+      "endFrame": 720,
+      "seconds": 1.579,
+      "text": "About ten decisions a second.",
+      "voice": "af_heart",
+      "speed": 0.93
+    },
+    {
+      "startFrame": 788,
+      "endFrame": 900,
+      "seconds": 3.459,
+      "text": "CutPilot Live. Continuous decision AI for video.",
+      "voice": "af_heart",
+      "speed": 0.93
+    }
+  ]
+}

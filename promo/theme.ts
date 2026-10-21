@@ -1,12 +1,14 @@
 import { Easing, interpolate } from 'remotion';
 
-export const BG = '#0A0A0B';
-export const TEXT = '#EDEDED';
-export const MUTED = '#8A8A93';
-export const ACCENT = '#C6FF3D';
-export const LINE = '#ffffff14';
-export const SURFACE = '#101012';
-export const CLIP = '#161618';
+export const BG = '#FAFAFA';
+export const HOLD = '#FFFFFF';
+export const TEXT = '#0A0A0B';
+export const MUTED = '#6B6B73';
+export const ACCENT = '#4D7C0F';
+export const LINE = '#00000014';
+export const SURFACE = '#FFFFFF';
+export const CLIP = '#F4F4F5';
+export const WAVE = '#8E8E96';
 
 export const DISPLAY = 'Geist, sans-serif';
 export const MONO = '"Ioskeley Mono", ui-monospace, monospace';

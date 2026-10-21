@@ -1,0 +1,12 @@
+# CutPilot Live voiceover. Calm, confident, American English.
+# One line per cue: start frame, last frame it may occupy, then the sentence.
+# 30 fps. The white hold is frames 720–779 and stays silent.
+# Regenerate the wav with: npm run cutpilot:vo
+
+81 150 Editing has always waited for you.
+156 240 What if the timeline cut itself?
+248 360 CutPilot Live makes every cut in real time.
+366 480 Every decision, logged, with confidence.
+486 600 Steer it mid-flight. Tell it to keep the jokes.
+606 720 About ten decisions a second.
+788 900 CutPilot Live. Continuous decision AI for video.

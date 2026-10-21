@@ -13,7 +13,7 @@ export const SCENES = {
   log: { from: 360, duration: 120 },
   steer: { from: 480, duration: 120 },
   stream: { from: 600, duration: 120 },
-  black: { from: 720, duration: 60 },
+  hold: { from: 720, duration: 60 },
   end: { from: 780, duration: 120 },
 } as const;
 

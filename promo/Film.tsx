@@ -3,6 +3,7 @@ import { AbsoluteFill, Sequence, staticFile, useCurrentFrame, useVideoConfig } f
 import { Audio } from '@remotion/media';
 import { usePromoFonts } from './load-fonts';
 import { SCENES } from './timeline';
+import { BG, HOLD } from './theme';
 import { Camera, Counter, CutPilotWindow, EndCard, Headline, OpeningLine, Stage } from './ui';
 
 export type FilmProps = { music?: boolean };
@@ -91,8 +92,8 @@ function StreamScene() {
   );
 }
 
-function BlackScene() {
-  return <AbsoluteFill style={{ background: '#000000' }} />;
+function HoldScene() {
+  return <AbsoluteFill style={{ background: HOLD }} />;
 }
 
 function EndScene() {
@@ -103,7 +104,7 @@ function EndScene() {
 export function Film({ music = false }: FilmProps) {
   usePromoFonts();
   return (
-    <AbsoluteFill style={{ background: '#0A0A0B', overflow: 'hidden', fontFamily: 'Geist, sans-serif' }}>
+    <AbsoluteFill style={{ background: BG, overflow: 'hidden', fontFamily: 'Geist, sans-serif' }}>
       <Stage />
       <Sequence from={SCENES.playhead.from} durationInFrames={SCENES.playhead.duration} name="Playhead">
         <PlayheadScene />
@@ -126,12 +127,13 @@ export function Film({ music = false }: FilmProps) {
       <Sequence from={SCENES.stream.from} durationInFrames={SCENES.stream.duration} name="Stream">
         <StreamScene />
       </Sequence>
-      <Sequence from={SCENES.black.from} durationInFrames={SCENES.black.duration} name="Black">
-        <BlackScene />
+      <Sequence from={SCENES.hold.from} durationInFrames={SCENES.hold.duration} name="Hold">
+        <HoldScene />
       </Sequence>
       <Sequence from={SCENES.end.from} durationInFrames={SCENES.end.duration} name="End">
         <EndScene />
       </Sequence>
+      <Audio src={staticFile('cutpilot/promo-vo.wav')} />
       <Audio src={staticFile(music ? 'cutpilot/promo-bed.wav' : 'cutpilot/promo-ticks.wav')} />
     </AbsoluteFill>
   );

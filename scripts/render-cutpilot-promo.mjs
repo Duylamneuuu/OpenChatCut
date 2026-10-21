@@ -4,8 +4,9 @@
 //   node scripts/render-cutpilot-promo.mjs --stills 40,120,230,280,450,860
 //   node scripts/render-cutpilot-promo.mjs --music
 //
-// Writes a 1920×1080 film and a 1080×1080 cut. --music mixes a quiet
-// synthesized bed under the ticks. The default bed is silent.
+// Writes a 1920×1080 film and a 1080×1080 cut. The stitched master mixes
+// the Kokoro voiceover with ducked ticks and a quiet synthesized sine bed.
+// --music lifts that bed. The white hold stays silent.
 import { bundle } from '@remotion/bundler';
 import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
 import { execFileSync } from 'node:child_process';
@@ -50,17 +51,16 @@ function mixWav(music) {
     for (let i = 0; i < length && start + i < count; i += 1) {
       const t = i / sampleRate;
       const env = Math.exp(-t * 160);
-      data[start + i] += Math.sin(2 * Math.PI * 2100 * t) * env * 0.22;
+      data[start + i] += Math.sin(2 * Math.PI * 2100 * t) * env * 0.055;
     }
   }
-  if (music) {
-    for (let i = 0; i < count; i += 1) {
-      const frame = (i / sampleRate) * fps;
-      if (frame >= 720 && frame < 780) continue;
-      const t = i / sampleRate;
-      const fade = Math.min(1, t / 0.5, (30 - t) / 0.8);
-      data[i] += (Math.sin(2 * Math.PI * 98 * t) + Math.sin(2 * Math.PI * 196 * t) * 0.35) * 0.012 * fade;
-    }
+  const bed = music ? 0.022 : 0.012;
+  for (let i = 0; i < count; i += 1) {
+    const frame = (i / sampleRate) * fps;
+    if (frame >= 720 && frame < 780) continue;
+    const t = i / sampleRate;
+    const fade = Math.min(1, t / 0.6, (30 - t) / 0.8);
+    data[i] += (Math.sin(2 * Math.PI * 98 * t) + Math.sin(2 * Math.PI * 196 * t) * 0.35) * bed * fade;
   }
   for (let i = 0; i < count; i += 1) {
     const frame = (i / sampleRate) * fps;
@@ -89,6 +89,8 @@ function mixWav(music) {
 
 const audioDir = path.join(root, 'public', 'cutpilot');
 await mkdir(audioDir, { recursive: true });
+const voPath = path.join(audioDir, 'promo-vo.wav');
+if (!existsSync(voPath)) throw new Error('Missing public/cutpilot/promo-vo.wav. Run npm run cutpilot:vo');
 writeFileSync(path.join(audioDir, 'promo-ticks.wav'), mixWav(false));
 writeFileSync(path.join(audioDir, 'promo-bed.wav'), mixWav(true));
 
@@ -182,9 +184,12 @@ async function video(composition, output) {
   // part's AAC adds its own priming. Renumber the 900 pictures and replace
   // the audio with the master wav so the ticks stay on their frames.
   const masterAudio = path.join(audioDir, music ? 'promo-bed.wav' : 'promo-ticks.wav');
+  // Each part's AAC adds its own priming, so the concatenated soundtrack is
+  // discarded. The voiceover and the tick bed are mixed here, levels unchanged.
   execFileSync('ffmpeg', [
-    '-y', '-i', joined, '-i', masterAudio,
-    '-map', '0:v:0', '-map', '1:a:0',
+    '-y', '-i', joined, '-i', masterAudio, '-i', voPath,
+    '-filter_complex', '[1:a][2:a]amix=inputs=2:duration=longest:normalize=0,aformat=sample_rates=48000:channel_layouts=stereo[a]',
+    '-map', '0:v:0', '-map', '[a]',
     '-vf', 'setpts=N/30/TB',
     '-frames:v', String(composition.durationInFrames),
     '-fps_mode', 'passthrough',
@@ -192,9 +197,7 @@ async function video(composition, output) {
     '-crf', '17',
     '-pix_fmt', 'yuv420p',
     '-c:a', 'aac',
-    '-b:a', '160k',
-    '-ar', '48000',
-    '-ac', '2',
+    '-b:a', '192k',
     '-shortest',
     output,
   ], { stdio: 'inherit' });
@@ -223,7 +226,7 @@ if (stillFrames.length) {
   if (!process.argv.includes('--square-only')) await video(wide, wideOut);
   await video(square, squareOut);
   await still(wide, 860, posterOut);
-  const artifactFrames = [40, 130, 280, 450, 570, 860];
+  const artifactFrames = [130, 280, 570, 860];
   for (const frame of artifactFrames) {
     await still(wide, frame, `/opt/cursor/artifacts/cutpilot-promo-f${String(frame).padStart(4, '0')}.png`);
   }

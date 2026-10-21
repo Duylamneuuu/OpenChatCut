@@ -2,14 +2,17 @@ import type { ReactNode } from 'react';
 import { AbsoluteFill, spring, useVideoConfig } from 'remotion';
 import {
   ACCENT,
+  BG,
   CLIP,
   DISPLAY,
+  HOLD,
   LINE,
   MONO,
   MUTED,
   PAD,
   SURFACE,
   TEXT,
+  WAVE,
   TITLE_H,
   TRACK_CENTER_Y,
   TRACK_H,
@@ -38,7 +41,7 @@ import {
   playheadUnit,
 } from './timeline';
 
-const WAVE = [18, 32, 48, 70, 54, 86, 64, 40, 58, 78, 92, 66, 44, 30, 52, 74, 60, 38, 46, 82, 68, 50, 28, 42, 63, 88, 57, 36, 24, 44, 70, 48];
+const WAVE_LEVELS = [18, 32, 48, 70, 54, 86, 64, 40, 58, 78, 92, 66, 44, 30, 52, 74, 60, 38, 46, 82, 68, 50, 28, 42, 63, 88, 57, 36, 24, 44, 70, 48];
 
 const CLIPS = [
   { key: 'confusing', label: 'confusing', width: 200, kind: 'keep' as const },
@@ -75,16 +78,16 @@ function placeClips(silenceSpring: number, umSpring: number) {
 
 function accentMix(t: number): string {
   const amount = Math.min(1, Math.max(0, t));
-  const from = [0x16, 0x16, 0x18];
-  const to = [0xc6, 0xff, 0x3d];
+  const from = [0xf4, 0xf4, 0xf5];
+  const to = [0x4d, 0x7c, 0x0f];
   const rgb = from.map((channel, index) => Math.round(channel + (to[index]! - channel) * amount));
   return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
 }
 
 export function Stage() {
   return (
-    <AbsoluteFill style={{ background: '#0A0A0B' }}>
-      <AbsoluteFill style={{ background: 'radial-gradient(ellipse 72% 56% at 50% 42%, #141416 0%, #0A0A0B 68%)' }} />
+    <AbsoluteFill style={{ background: BG }}>
+      <AbsoluteFill style={{ background: 'radial-gradient(ellipse 72% 56% at 50% 42%, #FFFFFF 0%, #FAFAFA 70%)' }} />
     </AbsoluteFill>
   );
 }
@@ -196,8 +199,8 @@ function Timeline({ frame }: { frame: number }) {
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
       <div style={{ position: 'absolute', left: PAD, top: PAD + 80, width: TRACK_W, height: 40, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-        {WAVE.map((height, index) => {
-          const barX = (index + 0.5) / WAVE.length;
+        {WAVE_LEVELS.map((height, index) => {
+          const barX = (index + 0.5) / WAVE_LEVELS.length;
           const printed = enter(frame, 75 + Math.max(0, barX - 0.5) * 140, 14);
           return (
             <div
@@ -205,7 +208,7 @@ function Timeline({ frame }: { frame: number }) {
               style={{
                 width: 8,
                 height: 40 * (height / 100) * printed,
-                background: '#3A3A40',
+                background: WAVE,
                 borderRadius: 2,
                 flex: '0 0 8px',
               }}
@@ -230,6 +233,7 @@ function Timeline({ frame }: { frame: number }) {
               borderRadius: 8,
               background: hot > 0 ? accentMix(hot) : CLIP,
               border: hot > 0.85 ? 'none' : `1px solid ${LINE}`,
+              boxShadow: hot > 0.85 ? 'none' : '0 8px 20px rgba(0,0,0,0.05)',
               overflow: 'hidden',
               display: 'flex',
               alignItems: 'center',
@@ -308,7 +312,7 @@ function Steer({ frame }: { frame: number }) {
   ];
   return (
     <div style={{ position: 'absolute', left: PAD, right: PAD, top: 28 }}>
-      <div style={{ height: 80, borderRadius: 12, border: `1px solid ${LINE}`, background: '#0A0A0B', display: 'flex', alignItems: 'center', padding: '0 24px' }}>
+      <div style={{ height: 80, borderRadius: 12, border: `1px solid ${LINE}`, background: HOLD, display: 'flex', alignItems: 'center', padding: '0 24px' }}>
         <span style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 32, letterSpacing: '-0.03em', color: TEXT }}>
           {shown}
         </span>
@@ -344,7 +348,7 @@ function Stream({ frame }: { frame: number }) {
     <div style={{ position: 'absolute', left: PAD, right: PAD, top: 8 }}>
       <div style={{ display: 'flex', gap: 8, height: 48, alignItems: 'center' }}>
         {[168, 104, 136].map((width) => (
-          <div key={width} style={{ width, height: 40, borderRadius: 8, background: '#222228', border: '1px solid #ffffff24' }} />
+          <div key={width} style={{ width, height: 40, borderRadius: 8, background: CLIP, border: `1px solid ${LINE}` }} />
         ))}
       </div>
       <div style={{ marginTop: 12, height: slot * visible, overflow: 'hidden', position: 'relative' }}>
@@ -385,7 +389,7 @@ export function CutPilotWindow({ frame, width }: { frame: number; width: number 
   const left = windowLeft(width);
   const chrome = chromeAt(frame);
   const panel = panelAt(frame);
-  const streaming = frame >= SCENES.stream.from && frame < SCENES.black.from;
+  const streaming = frame >= SCENES.stream.from && frame < SCENES.hold.from;
   const insetTop = (1 - chrome) * (TITLE_H + PAD);
   const insetX = (1 - chrome) * PAD;
   const insetBottom = (1 - chrome) * (WINDOW_H - TITLE_H - PAD - TRACK_H);
@@ -399,9 +403,9 @@ export function CutPilotWindow({ frame, width }: { frame: number; width: number 
         width: WINDOW_W,
         height: WINDOW_H,
         borderRadius: radius,
-        border: `1px solid rgba(255,255,255,${0.08 * chrome})`,
+        border: `1px solid rgba(0,0,0,${0.08 * chrome})`,
         background: chrome > 0.02 ? SURFACE : 'transparent',
-        boxShadow: chrome >= 1 ? '0 24px 64px rgba(0,0,0,0.45)' : 'none',
+        boxShadow: chrome >= 1 ? '0 28px 80px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.04)' : 'none',
         overflow: 'hidden',
         clipPath: chrome >= 1 ? undefined : `inset(${insetTop}px ${insetX}px ${insetBottom}px ${insetX}px round ${radius}px)`,
       }}
