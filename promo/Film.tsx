@@ -4,7 +4,8 @@ import { Audio } from '@remotion/media';
 import { usePromoFonts } from './load-fonts';
 import { SCENES } from './timeline';
 import { BG, HOLD } from './theme';
-import { Camera, Counter, CutPilotWindow, EndCard, Headline, OpeningLine, Stage } from './ui';
+import { EndCard, OpeningLine } from './cards';
+import { Camera, Counter, CutPilotWindow, Headline, Stage } from './ui';
 
 export type FilmProps = { music?: boolean };
 

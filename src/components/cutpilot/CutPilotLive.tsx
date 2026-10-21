@@ -1,26 +1,19 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { theme } from '../../theme.js';
 import { docFromTimeline, createProject } from '../../persist/projectStore.js';
 import { navigateTo } from '../../app/appShell.js';
 import type { PublicCutPilotConfig } from '../../cutpilot/config.js';
 import { timelineToEdl, timelineToOtio } from '../../cutpilot/edl.js';
-import type { GhostSpan } from '../../cutpilot/executor.js';
-import { formatClock, formatMs, formatUsd, liveMetrics } from '../../cutpilot/metrics.js';
+import { formatMs, formatUsd, liveMetrics } from '../../cutpilot/metrics.js';
 import { fetchCutPilotConfig } from '../../cutpilot/providers/remote.js';
 import { repeatSegments } from '../../cutpilot/segmenter.js';
 import { SAMPLE_DURATION_MS, SAMPLE_MEDIA_SRC, sampleSegments } from '../../cutpilot/sample.js';
 import { TALK_DURATION_MS, TALK_MEDIA_SRC, talkSegments } from '../../cutpilot/talk-clip.js';
 import { createSession, stepSession, type CutSession } from '../../cutpilot/session.js';
-import type { CutAction, LoggedDecision } from '../../cutpilot/types.js';
 import { providersFor } from '../../cutpilot/ui-providers.js';
 import type { TimelineState } from '../../editor/types.js';
-
-const ACTION_COLOR: Record<CutAction, string> = {
-  keep: 'var(--cc-clip-video)',
-  cut: 'var(--cc-danger)',
-  trim: 'var(--cc-gold)',
-  broll: 'var(--cc-clip-mg)',
-};
+import { DecisionRow, LaneLabel, ProgramLane, Stat, type Ghost } from './CutPilotChrome.js';
+import { ACTION_COLOR, accentButton, chip, column, quietButton, selectStyle } from './cutpilotStyles.js';
 
 const PRESETS = [
   'keep the jokes',
@@ -29,11 +22,6 @@ const PRESETS = [
   'add b-roll on the desk shot',
   'zoom the desk shot',
 ];
-
-interface Ghost extends GhostSpan {
-  id: string;
-  until: number;
-}
 
 interface SpeechRec {
   lang: string;
@@ -490,113 +478,3 @@ export function CutPilotLive({ onHome }: { onHome: () => void }) {
     </div>
   );
 }
-
-function DecisionRow({ decision }: { decision: LoggedDecision }) {
-  const latency = decision.latencyMs < 10
-    ? `${decision.latencyMs.toFixed(1)}ms`
-    : `${Math.round(decision.latencyMs)}ms`;
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '52px 72px minmax(0, 1fr) auto', gap: 8, padding: '4px 0', borderBottom: `0.5px solid ${theme.border}` }}>
-      <span style={{ color: theme.textDim }}>#{String(decision.index + 1).padStart(3, '0')}</span>
-      <span>{formatClock(decision.startMs)}</span>
-      <span>
-        “{decision.text || 'silence'}”
-        {decision.zoom ? ' · zoom' : ''}
-        {decision.fallback ? ' · fallback' : ''}
-        {decision.escalated ? ' · escalated' : ''}
-      </span>
-      <span style={{ color: ACTION_COLOR[decision.action], fontWeight: 650, whiteSpace: 'nowrap' }}>
-        {decision.action.toUpperCase()} p={decision.confidence.toFixed(2)} {latency}
-      </span>
-    </div>
-  );
-}
-
-function ProgramLane({ state, track, scale, ghosts }: { state: TimelineState; track: string; scale: number; ghosts: Ghost[] }) {
-  const items = state.items.filter((item) => item.track === track);
-  return (
-    <div style={{ position: 'relative', height: 42, background: theme.tlTrack, borderRadius: 6, overflow: 'hidden' }}>
-      <span style={{ position: 'absolute', left: 6, top: 2, fontSize: 10, color: theme.textDim }}>{track === 'V2' ? 'B-roll' : 'A-roll'}</span>
-      {items.map((item) => (
-        <div key={item.id} title={item.name} style={{
-          position: 'absolute', top: 16, height: 20,
-          left: `${(item.startFrame / scale) * 100}%`,
-          width: `${Math.max(0.3, (item.durationInFrames / scale) * 100)}%`,
-          background: item.kind === 'solid' ? theme.clipMg : item.zoom ? theme.gold : theme.clipVideo,
-          borderRadius: 3,
-        }} />
-      ))}
-      {ghosts.map((ghost) => (
-        <div key={ghost.id} style={{
-          position: 'absolute', top: 16, height: 20,
-          left: `${(ghost.startFrame / scale) * 100}%`,
-          width: `${Math.max(0.3, (ghost.durationInFrames / scale) * 100)}%`,
-          background: '#ef4444',
-          borderRadius: 3,
-          animation: 'cutpilot-flash 420ms linear forwards',
-        }} />
-      ))}
-    </div>
-  );
-}
-
-function LaneLabel({ title, detail }: { title: string; detail: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
-      <strong style={{ fontSize: 12 }}>{title}</strong>
-      <span style={{ fontSize: 11, color: theme.textDim }}>{detail}</span>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ background: theme.panel, border: `0.5px solid ${theme.border}`, borderRadius: 8, padding: '8px 10px' }}>
-      <div style={{ fontSize: 11, color: theme.textDim }}>{label}</div>
-      <div style={{ fontSize: 18, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{value}</div>
-    </div>
-  );
-}
-
-const quietButton: CSSProperties = {
-  height: 28,
-  borderRadius: 6,
-  border: '0.5px solid var(--cc-border)',
-  background: 'transparent',
-  color: 'var(--cc-text)',
-  padding: '0 10px',
-  cursor: 'pointer',
-  fontSize: 12,
-};
-
-const accentButton: CSSProperties = {
-  ...quietButton,
-  background: 'var(--cc-accent)',
-  color: 'var(--cc-on-accent)',
-  border: 'none',
-  fontWeight: 650,
-};
-
-const chip: CSSProperties = {
-  ...quietButton,
-  color: 'var(--cc-text-dim)',
-};
-
-const selectStyle: CSSProperties = {
-  height: 28,
-  borderRadius: 6,
-  border: '0.5px solid var(--cc-border)',
-  background: 'var(--cc-inset)',
-  color: 'var(--cc-text)',
-  fontSize: 12,
-};
-
-const column: CSSProperties = {
-  minWidth: 0,
-  minHeight: 0,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 8,
-  padding: 12,
-  overflow: 'auto',
-};

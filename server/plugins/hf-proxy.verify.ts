@@ -141,6 +141,10 @@ assert.equal(await downloadModelFile(downloadTarget, cachedDownload, {
   expectedSha256: fixtureIntegrity.sha256,
 }), cachedDownload);
 await writeFile(cachedDownload, corruptFixture);
+// An in-place rewrite can keep the same mtimeMs. The integrity cache would
+// then skip the hash and return the corrupt file. Move the stamp so this
+// asserts the aborted re-download.
+await utimes(cachedDownload, new Date(), new Date(Date.now() + 1_000));
 const aborted = new AbortController();
 aborted.abort(new Error('do not access the network'));
 await assert.rejects(
